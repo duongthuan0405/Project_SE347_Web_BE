@@ -1,4 +1,5 @@
 
+using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 using se347_be.Database;
 using se347_be.Database.DbEntity;
@@ -15,9 +16,13 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        #region Load .env File
+        Env.Load();
+        #endregion
+
         #region Database Connection
         // Get Connection String from appsettings.json
-        var connectionString = builder.Configuration.GetConnectionString("PSQLConnectionString");
+        var connectionString = Environment.GetEnvironmentVariable("PSQLConnectionString");
         Console.WriteLine(connectionString);
         // Apply DbContext with PostgreSQL
         builder.Services.AddDbContext<MyAppDbContext>(options => options.UseNpgsql(connectionString));
