@@ -45,7 +45,7 @@ namespace se347_be.Work.Controllers
             }
         }
 
-        [HttpGet("/{id}")]
+        [HttpGet("{id}")]
         public async Task<ActionResult<TestEntityDTO>> GetTestEntityById([FromRoute] string id)
         {
             try
