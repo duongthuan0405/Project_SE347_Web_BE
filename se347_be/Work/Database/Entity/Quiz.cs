@@ -47,7 +47,7 @@ namespace se347_be.Work.Database.Entity
         public Guid? CreatorId { get; set; }
 
         // Navigation
-        public User? CreatorUser { get; set; }
+        public AppUser? CreatorUser { get; set; }
         public List<Question>? Questions { get; set; }
         public List<QuizParticipation>? Participations { get; set; }
     }

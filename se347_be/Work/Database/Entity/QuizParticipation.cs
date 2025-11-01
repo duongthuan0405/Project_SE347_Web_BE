@@ -36,7 +36,7 @@ namespace se347_be.Work.Database.Entities
         public DateTime? SubmitTime { get; set; }
 
         // Navigation
-        public User? ParticipantUser { get; set; }
+        public AppUser? ParticipantUser { get; set; }
         public Quiz? Quiz { get; set; }
         public ICollection<AnswerSelection>? AnswerSelections { get; set; }
     }

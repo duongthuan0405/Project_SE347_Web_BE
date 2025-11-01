@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 namespace se347_be.Work.Database.Entity
 {
     [Table("UserProfile")]
-    public class UserProfile
+    public class AppUserProfile
     {
-        [Key, ForeignKey("User")]
+        [Key, ForeignKey("AppUser")]
         public Guid Id { get; set; }
 
         [Required, Column(TypeName = "varchar(255)")]
@@ -23,6 +23,6 @@ namespace se347_be.Work.Database.Entity
         public string? Avatar { get; set; }
 
         // Navigation
-        public User User { get; set; } = null!;
+        public AppUser AppUser { get; set; } = null!;
     }
 }

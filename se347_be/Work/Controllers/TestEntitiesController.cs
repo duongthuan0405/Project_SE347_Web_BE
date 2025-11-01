@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using se347_be.DTOs;
 using se347_be.Work.Services.Interfaces;
@@ -10,6 +11,7 @@ namespace se347_be.Work.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class TestEntitiesController : ControllerBase
     {
         ITestEntityService _testEntityService;
@@ -48,6 +50,7 @@ namespace se347_be.Work.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<TestEntityDTO>> GetTestEntityById([FromRoute] string id)
         {
+
             try
             {
                 var r = await _testEntityService.GetEntityById(id);

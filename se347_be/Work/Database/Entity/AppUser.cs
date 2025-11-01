@@ -1,15 +1,17 @@
+using Microsoft.EntityFrameworkCore;
+using se347_be.Work.Database.Entities;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
-using se347_be.Work.Database.Entities;
 
 namespace se347_be.Work.Database.Entity
 {
     [Table("User")]
-    public class User
+    [Index(nameof(Email), IsUnique = true)]
+    public class AppUser
     {
         [Key]
         public Guid Id { get; set; }
@@ -19,10 +21,12 @@ namespace se347_be.Work.Database.Entity
 
         [Required, Column(TypeName = "varchar(255)")]
         public string PasswordHash { get; set; } = null!;
+        public bool IsVerified { get; set; } = true;
 
         // Navigation 
-        public UserProfile? UserProfile { get; set; }
+        public AppUserProfile? AppUserProfile { get; set; }
         public List<Quiz>? QuizzesCreated { get; set; }
         public List<QuizParticipation>? Participations { get; set; }
+       
     }
 }
