@@ -14,8 +14,8 @@ namespace se347_be.Database
         public MyAppDbContext(DbContextOptions<MyAppDbContext> options) : base(options) { }
         
         public DbSet<TestEntity> TestEntities { get; set; }
-        public DbSet<User> Users { get; set; }
-        public DbSet<UserProfile> UserProfiles { get; set; }
+        public DbSet<AppUser> Users { get; set; }
+        public DbSet<AppUserProfile> UserProfiles { get; set; }
         public DbSet<Quiz> Quizzes { get; set; }
         public DbSet<QuizParticipation> QuizParticipations { get; set; }
         public DbSet<Question> Questions { get; set; }

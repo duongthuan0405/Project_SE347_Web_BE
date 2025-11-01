@@ -1,7 +1,12 @@
 
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using DotNetEnv;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using se347_be.Database;
+using se347_be.Work.JWT;
 using se347_be.Work.Repositories.Implementations;
 using se347_be.Work.Repositories.Interfaces;
 using se347_be.Work.Services.Implementations;
@@ -30,9 +35,24 @@ public class Program
         builder.Services.AddSwaggerGen();
         #endregion
 
+        #region JWT
+
+        var jwtConfig = builder.Configuration.GetSection("Jwt");
+
+        string JWTKey = Environment.GetEnvironmentVariable("JWTKey") ?? throw new Exception("No Key JWT");
+        string JWTIssuer = jwtConfig["Issuer"] ?? throw new Exception("No Issuer JWT");
+        string JWTAudience = jwtConfig["Audience"] ?? throw new Exception("No Audience JWT");
+        double JWTExpireHours = double.Parse(jwtConfig["ExpireHours"] ?? "1");
+
+        builder.Services.AddSingleton(new JWTHelper(JWTKey, JWTIssuer, JWTAudience, JWTExpireHours));
+        #endregion
+        
         #region Custom Services and Repositories
         builder.Services.AddScoped<ITestEntityRepository, TestEntityRepository>();
         builder.Services.AddScoped<ITestEntityService, TestEntityService>();
+        builder.Services.AddScoped<IAppAuthenticationService, AuthenticationService>();
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         #endregion
 
         // Add services to the container.
@@ -40,6 +60,34 @@ public class Program
 
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
+
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.RequireHttpsMetadata = false; // dev local
+            options.SaveToken = true;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = JWTIssuer,
+
+                ValidateAudience = true,
+                ValidAudience = JWTAudience,
+
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JWTKey)),
+
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero,
+
+                NameClaimType = JwtRegisteredClaimNames.Sub,
+            };
+        });
+
 
         var app = builder.Build();
 
