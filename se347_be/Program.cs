@@ -2,7 +2,6 @@
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 using se347_be.Database;
-using se347_be.Database.DbEntity;
 using se347_be.Work.Repositories.Implementations;
 using se347_be.Work.Repositories.Interfaces;
 using se347_be.Work.Services.Implementations;
@@ -52,6 +51,13 @@ public class Program
             app.UseSwaggerUI();
         }
 
+        using (var scope = app.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<MyAppDbContext>();
+            // Apply any pending migrations
+            dbContext.Database.Migrate();
+        }
+        
         app.UseAuthorization();
         app.MapControllers();
         app.Run();
