@@ -9,7 +9,7 @@ namespace se347_be.Work.Repositories.Interfaces
 {
     public interface IUserRepository
     {
-        public Task<string> AddNewUserAsync(AppUser user);
+        public Task<Guid> AddNewUserAsync(AppUser user);
         public Task RemoveByIdAsync(Guid id);
         public Task<AppUser?> GetUserWithGmailAndPasswordAsync(string email, string password);
     }
