@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http.HttpResults;
+using se347_be.Email;
 using se347_be.Work.Database.Entity;
 using se347_be.Work.DTOs;
 using se347_be.Work.PasswordHelper;
@@ -14,11 +16,21 @@ namespace se347_be.Work.Services.Implementations
     {
         IUserRepository _userRepo;
         IUserProfileRepository _profileRepo;
-        public AuthenticationService(IUserRepository userRepository, IUserProfileRepository profileRepository)
+        IPendingUserRepository _pendingUserRepo;
+        IEmail _email;
+        public AuthenticationService(IUserRepository userRepository, IUserProfileRepository profileRepository, IEmail email, IPendingUserRepository pendingUserRepo)
         {
             _userRepo = userRepository;
             _profileRepo = profileRepository;
+            _email = email;
+            _pendingUserRepo = pendingUserRepo;
         }
+
+        public async Task ResendOTPAsync(ResendOTPRequestDTO resendOTPDTO)
+        {
+            await _email.SendOTPAsync(resendOTPDTO.EmailTo, true);
+        }
+
         public async Task<string?> SignInAsync(SignInRequestDTO signInRequestDTO)
         {
             AppUser? user = await _userRepo.GetUserWithGmailAndPasswordAsync(signInRequestDTO.Email, signInRequestDTO.Password);
@@ -29,37 +41,65 @@ namespace se347_be.Work.Services.Implementations
         {
             if (signUpRequestDTO.Password.Length <= 5)
             {
-                throw new InvalidDataException("Password length must have at least 6 characters");
+                throw new InvalidDataException("OTP length must have at least 6 characters");
             }
-
-            AppUser user = new AppUser()
-            {
-                Email = signUpRequestDTO.Email,
-                PasswordHash = PasswordHashHelper.HashPassword(signUpRequestDTO.Password)
-            };
-
-            AppUserProfile profile = new AppUserProfile()
-            {
-                LastName = signUpRequestDTO.LastName,
-                FirstName = signUpRequestDTO.FirstName
-            };
 
             try
             {
-                string id = await _userRepo.AddNewUserAsync(user);
-                profile.Id = Guid.Parse(id);
+                PendingUser pendingUser = new PendingUser()
+                {
+                    Email = signUpRequestDTO.Email,
+                    PasswordHash = PasswordHashHelper.HashPassword(signUpRequestDTO.Password),
+                    LastName = signUpRequestDTO.LastName,
+                    FirstName = signUpRequestDTO.FirstName
+                };
+
+                string emailUser = await _pendingUserRepo.AddNewPendingUserAsync(pendingUser);
+                await _email.SendOTPAsync(emailUser);
+                return emailUser;
+            }
+            catch (Exception)
+            {
+                await _pendingUserRepo.RemovePendingUserAsync(signUpRequestDTO.Email);
+                throw;
+            }
+           
+        }
+
+        public async Task<string> VerifyAccountAsync(string email, string otp)
+        {
+            Guid id = Guid.Empty;
+            try
+            {
+                var result = await _pendingUserRepo.VerifyAccountAsync(email, otp);
+                AppUser user = new AppUser()
+                {
+                    Email = result.Email,
+                    PasswordHash = result.PasswordHash,
+                };
+
+                id = await _userRepo.AddNewUserAsync(user);
+
+                AppUserProfile profile = new AppUserProfile()
+                {
+                    LastName = result.LastName,
+                    FirstName = result.FirstName,
+                    Id = id
+                };
+
                 await _profileRepo.AddNewUserProfileAsync(profile);
-                return id;
+                return id.ToString();
             }
             catch (InvalidDataException)
             {
                 throw;
             }
-            catch (Exception)
+            catch(Exception)
             {
-                await _userRepo.RemoveByIdAsync(user.Id);
+                await _userRepo.RemoveByIdAsync(id);
                 throw;
             }
+      
         }
     }
 }

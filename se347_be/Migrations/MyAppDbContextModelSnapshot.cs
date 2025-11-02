@@ -121,9 +121,6 @@ namespace se347_be.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(255)");
 
-                    b.Property<bool>("IsVerified")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("varchar(255)");
@@ -155,6 +152,34 @@ namespace se347_be.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("UserProfile");
+                });
+
+            modelBuilder.Entity("se347_be.Work.Database.Entity.PendingUser", b =>
+                {
+                    b.Property<string>("Email")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime?>("ExpireAt")
+                        .HasColumnType("Timestamptz");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("OTP")
+                        .HasColumnType("Char(6)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("Email");
+
+                    b.ToTable("PendingUser");
                 });
 
             modelBuilder.Entity("se347_be.Work.Database.Entity.Question", b =>

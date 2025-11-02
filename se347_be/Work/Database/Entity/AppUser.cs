@@ -21,7 +21,6 @@ namespace se347_be.Work.Database.Entity
 
         [Required, Column(TypeName = "varchar(255)")]
         public string PasswordHash { get; set; } = null!;
-        public bool IsVerified { get; set; } = true;
 
         // Navigation 
         public AppUserProfile? AppUserProfile { get; set; }

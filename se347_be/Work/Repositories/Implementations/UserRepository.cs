@@ -19,13 +19,13 @@ namespace se347_be.Work.Repositories.Implementations
             _db = myAppDbContext;
         }
 
-        public async Task<string> AddNewUserAsync(AppUser user)
+        public async Task<Guid> AddNewUserAsync(AppUser user)
         {
             try
             {
                 await _db.Users.AddAsync(user);
                 await _db.SaveChangesAsync();
-                return user.Id.ToString();
+                return user.Id;
             }
             catch (Exception ex)
             {

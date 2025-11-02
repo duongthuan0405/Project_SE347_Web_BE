@@ -21,6 +21,7 @@ namespace se347_be.Database
         public DbSet<Question> Questions { get; set; }
         public DbSet<Answer> Answers { get; set; }
         public DbSet<AnswerSelection> AnswerSelections { get; set; }
+        public DbSet<PendingUser> PendingUsers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

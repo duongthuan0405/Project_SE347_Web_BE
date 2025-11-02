@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using se347_be.Database;
+using se347_be.Email;
 using se347_be.Work.JWT;
 using se347_be.Work.Repositories.Implementations;
 using se347_be.Work.Repositories.Interfaces;
@@ -53,6 +54,10 @@ public class Program
         builder.Services.AddScoped<IAppAuthenticationService, AuthenticationService>();
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+        builder.Services.AddScoped<IPendingUserRepository, PendingUserRepository>();
+
+        builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+        builder.Services.AddScoped<IEmail, EmailService>();
         #endregion
 
         // Add services to the container.

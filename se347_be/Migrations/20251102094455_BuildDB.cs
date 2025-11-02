@@ -12,6 +12,22 @@ namespace se347_be.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "PendingUser",
+                columns: table => new
+                {
+                    Email = table.Column<string>(type: "varchar(255)", nullable: false),
+                    PasswordHash = table.Column<string>(type: "varchar(255)", nullable: false),
+                    LastName = table.Column<string>(type: "varchar(255)", nullable: false),
+                    FirstName = table.Column<string>(type: "varchar(255)", nullable: false),
+                    OTP = table.Column<string>(type: "Char(6)", nullable: true),
+                    ExpireAt = table.Column<DateTime>(type: "Timestamptz", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PendingUser", x => x.Email);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "TestEntity",
                 columns: table => new
                 {
@@ -200,6 +216,12 @@ namespace se347_be.Migrations
                 name: "IX_QuizParticipation_QuizId",
                 table: "QuizParticipation",
                 column: "QuizId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_User_Email",
+                table: "User",
+                column: "Email",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -207,6 +229,9 @@ namespace se347_be.Migrations
         {
             migrationBuilder.DropTable(
                 name: "AnswerSelection");
+
+            migrationBuilder.DropTable(
+                name: "PendingUser");
 
             migrationBuilder.DropTable(
                 name: "TestEntity");
