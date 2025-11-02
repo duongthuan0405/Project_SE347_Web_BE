@@ -25,9 +25,17 @@ public class Program
         Env.Load();
         #endregion
 
+        builder.Configuration.AddEnvironmentVariables();
+
         #region Database Connection
         // Get Connection String from appsettings.json
-        var connectionString = Environment.GetEnvironmentVariable("PSQLConnectionString");
+        var dbConfig = builder.Configuration.GetSection("DB");
+        var dbId = dbConfig["ID"];
+        var dbPassword = dbConfig["PASSWORD"];
+        var dbServer = dbConfig["SERVER"];
+        var dbPort = dbConfig["PORT"];
+        var dbDatabase = dbConfig["NAME"];
+        var connectionString = $"User Id={dbId};Password={dbPassword};Server={dbServer};Port={dbPort};Database={dbDatabase}";
         Console.WriteLine(connectionString);
         // Apply DbContext with PostgreSQL
         builder.Services.AddDbContext<MyAppDbContext>(options => options.UseNpgsql(connectionString));
@@ -40,7 +48,7 @@ public class Program
 
         var jwtConfig = builder.Configuration.GetSection("Jwt");
 
-        string JWTKey = Environment.GetEnvironmentVariable("JWTKey") ?? throw new Exception("No Key JWT");
+        string JWTKey = jwtConfig["Key"] ?? throw new Exception("No Key JWT");
         string JWTIssuer = jwtConfig["Issuer"] ?? throw new Exception("No Issuer JWT");
         string JWTAudience = jwtConfig["Audience"] ?? throw new Exception("No Audience JWT");
         double JWTExpireHours = double.Parse(jwtConfig["ExpireHours"] ?? "1");
@@ -73,7 +81,7 @@ public class Program
         })
         .AddJwtBearer(options =>
         {
-            options.RequireHttpsMetadata = false; // dev local
+            options.RequireHttpsMetadata = false; 
             options.SaveToken = true;
             options.TokenValidationParameters = new TokenValidationParameters
             {
