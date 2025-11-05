@@ -28,6 +28,9 @@ public class Program
         builder.Configuration.AddEnvironmentVariables();
 
         #region Database Connection
+        // Configure Npgsql to handle DateTime without timezone issues
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+        
         // Get Connection String from appsettings.json
         var dbConfig = builder.Configuration.GetSection("DB");
         var dbId = dbConfig["ID"];
@@ -63,6 +66,22 @@ public class Program
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         builder.Services.AddScoped<IPendingUserRepository, PendingUserRepository>();
+
+        // Quiz Module
+        builder.Services.AddScoped<IQuizRepository, QuizRepository>();
+        builder.Services.AddScoped<IQuizService, QuizService>();
+
+        // Question Module
+        builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
+        builder.Services.AddScoped<IAnswerRepository, AnswerRepository>();
+        builder.Services.AddScoped<IQuestionService, QuestionService>();
+
+        // Invite Module
+        builder.Services.AddScoped<IInviteService, InviteService>();
+
+        // Statistics Module
+        builder.Services.AddScoped<IParticipationRepository, ParticipationRepository>();
+        builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 
         builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
         builder.Services.AddScoped<IEmail, EmailService>();
