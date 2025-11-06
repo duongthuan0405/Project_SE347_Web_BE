@@ -18,6 +18,12 @@ namespace se347_be.Email
         {
             _pendingUserRepository = oTPVerifyEmailRepository;
             _emailSettings = emailSettings.Value;
+            lock (Console.Out)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine(_emailSettings.Username + "\n" + _emailSettings.Password + "\n" + _emailSettings.Server + "\n" + _emailSettings.Port);
+                Console.ResetColor();
+            }
         }
 
         public async Task SendOTPAsync(string to, bool isResend)
