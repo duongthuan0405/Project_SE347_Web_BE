@@ -7,6 +7,7 @@ using se347_be.Work.DTOs.Quiz;
 using se347_be.Work.Repositories.Interfaces;
 using se347_be.Work.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using System.Linq;
 
 namespace se347_be.Work.Services.Implementations
@@ -16,15 +17,21 @@ namespace se347_be.Work.Services.Implementations
         private readonly IQuizRepository _quizRepository;
         private readonly IQuestionBankRepository _questionBankRepository;
         private readonly MyAppDbContext _context;
+        private readonly IGeminiAIService _geminiService;
+        private readonly IDocumentProcessorService _docProcessor;
 
         public QuizService(
             IQuizRepository quizRepository,
             IQuestionBankRepository questionBankRepository,
-            MyAppDbContext context)
+            MyAppDbContext context,
+            IGeminiAIService geminiService,
+            IDocumentProcessorService docProcessor)
         {
             _quizRepository = quizRepository;
             _questionBankRepository = questionBankRepository;
             _context = context;
+            _geminiService = geminiService;
+            _docProcessor = docProcessor;
         }
 
         public async Task<QuizResponseDTO> CreateQuizAsync(CreateQuizDTO createQuizDTO, Guid creatorId)
@@ -222,8 +229,17 @@ namespace se347_be.Work.Services.Implementations
             if (updateQuizDTO.MaxTimesCanAttempt.HasValue)
                 quiz.MaxTimesCanAttempt = updateQuizDTO.MaxTimesCanAttempt.Value;
 
+            // Check if publishing for the first time
+            bool wasUnpublished = !quiz.IsPublish;
+            
             if (updateQuizDTO.IsPublish.HasValue)
                 quiz.IsPublish = updateQuizDTO.IsPublish.Value;
+
+            // ⭐ Auto-save AI questions to bank when publishing
+            if (quiz.IsPublish && wasUnpublished && !quiz.QuestionsSavedToBank)
+            {
+                await SaveQuizQuestionsToBankAsync(quizId, creatorId);
+            }
 
             if (updateQuizDTO.IsShuffleAnswers.HasValue)
                 quiz.IsShuffleAnswers = updateQuizDTO.IsShuffleAnswers.Value;
@@ -444,6 +460,212 @@ namespace se347_be.Work.Services.Implementations
 
             _context.QuizQuestions.Remove(quizQuestion);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<QuizDetailDTO> GenerateQuestionsFromDocumentAsync(Guid quizId, GenerateQuestionsFromDocumentDTO dto, Guid creatorId)
+        {
+            // Get existing quiz
+            var quiz = await _context.Quizzes
+                .Include(q => q.QuizQuestions)
+                    .ThenInclude(qq => qq.Question)
+                        .ThenInclude(q => q!.Answers)
+                .FirstOrDefaultAsync(q => q.Id == quizId);
+
+            if (quiz == null)
+            {
+                throw new InvalidDataException("Quiz not found");
+            }
+
+            if (quiz.CreatorId != creatorId)
+            {
+                throw new UnauthorizedAccessException("You don't have permission to modify this quiz");
+            }
+
+            // Get document (must belong to this quiz)
+            var document = await _context.QuizSourceDocuments
+                .FirstOrDefaultAsync(d => d.Id == dto.DocumentId && d.QuizId == quizId);
+
+            if (document == null)
+            {
+                throw new InvalidDataException("Document not found or does not belong to this quiz");
+            }
+
+            // Read document content
+            string textContent;
+            try
+            {
+                textContent = await ReadDocumentContentAsync(document.StorageUrl);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Failed to read document content", ex);
+            }
+
+            // Generate questions from AI with category = "AI"
+            var aiResponse = await _geminiService.GenerateQuestionsFromTextAsync(
+                textContent,
+                document.FileName,
+                dto.NumberOfQuestions,
+                dto.AdditionalInstructions
+            );
+
+            // Get current max order index
+            int orderIndex = quiz.QuizQuestions?.Any() == true 
+                ? quiz.QuizQuestions.Max(qq => qq.OrderIndex) + 1 
+                : 0;
+
+            // Create Questions and link to existing Quiz
+            var questionsList = new List<Question>();
+
+            foreach (var questionDto in aiResponse.Questions)
+            {
+                var question = new Question
+                {
+                    Id = Guid.NewGuid(),
+                    Content = questionDto.Question,
+                    Points = 1, // Default points
+                    CreatorId = creatorId,
+                    Category = "AI", // ⭐ Mark as AI-generated
+                    IsDraft = false
+                };
+
+                // Add answers
+                var answers = questionDto.Answers.Select(a => new Answer
+                {
+                    Id = Guid.NewGuid(),
+                    Content = a.Content,
+                    QuestionId = question.Id,
+                    IsCorrectAnswer = a.IsCorrect
+                }).ToList();
+
+                question.Answers = answers;
+                questionsList.Add(question);
+
+                // Link question to quiz
+                var quizQuestion = new QuizQuestion
+                {
+                    QuizId = quiz.Id,
+                    QuestionId = question.Id,
+                    OrderIndex = orderIndex++
+                };
+
+                _context.Questions.Add(question);
+                _context.QuizQuestions.Add(quizQuestion);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Reload quiz with all questions
+            quiz = await _context.Quizzes
+                .Include(q => q.QuizQuestions)
+                    .ThenInclude(qq => qq.Question)
+                        .ThenInclude(q => q!.Answers)
+                .FirstOrDefaultAsync(q => q.Id == quizId);
+
+            // Return Quiz with ALL Questions (including newly generated)
+            return new QuizDetailDTO
+            {
+                Id = quiz!.Id,
+                Title = quiz.Title,
+                Description = quiz.Description,
+                CreateAt = quiz.CreateAt,
+                StartTime = quiz.StartTime,
+                DueTime = quiz.DueTime,
+                MaxTimesCanAttempt = quiz.MaxTimesCanAttempt,
+                IsPublish = quiz.IsPublish,
+                IsShuffleAnswers = quiz.IsShuffleAnswers,
+                IsShuffleQuestions = quiz.IsShuffleQuestions,
+                DurationInMinutes = quiz.DurationInMinutes,
+                AccessCode = quiz.AccessCode,
+                AccessType = quiz.AccessType,
+                ShowScoreAfterSubmission = quiz.ShowScoreAfterSubmission,
+                SendResultEmail = quiz.SendResultEmail,
+                ShowCorrectAnswersMode = quiz.ShowCorrectAnswersMode,
+                AllowNavigationBack = quiz.AllowNavigationBack,
+                PresentationMode = quiz.PresentationMode,
+                ScoringMode = quiz.ScoringMode,
+                CreatorId = quiz.CreatorId,
+                Questions = quiz.QuizQuestions?
+                    .OrderBy(qq => qq.OrderIndex)
+                    .Select(qq => new QuestionResponseDTO
+                    {
+                        Id = qq.Question!.Id,
+                        Content = qq.Question.Content,
+                        QuizId = quiz.Id,
+                        Answers = qq.Question.Answers?.Select(a => new AnswerResponseDTO
+                        {
+                            Id = a.Id,
+                            Content = a.Content,
+                            IsCorrectAnswer = a.IsCorrectAnswer
+                        }).ToList()
+                    }).ToList() ?? new List<QuestionResponseDTO>()
+            };
+        }
+
+        public async Task SaveQuizQuestionsToBankAsync(Guid quizId, Guid creatorId)
+        {
+            var quiz = await _context.Quizzes
+                .Include(q => q.QuizQuestions)
+                    .ThenInclude(qq => qq.Question)
+                .FirstOrDefaultAsync(q => q.Id == quizId);
+
+            if (quiz == null)
+            {
+                throw new InvalidDataException("Quiz not found");
+            }
+
+            if (quiz.CreatorId != creatorId)
+            {
+                throw new UnauthorizedAccessException("You don't have permission to access this quiz");
+            }
+
+            if (quiz.QuestionsSavedToBank)
+            {
+                return; // Already saved, skip
+            }
+
+            // Questions already exist in database, just mark as saved
+            quiz.QuestionsSavedToBank = true;
+            await _context.SaveChangesAsync();
+        }
+
+        private async Task<string> ReadDocumentContentAsync(string storageUrl)
+        {
+            if (!File.Exists(storageUrl))
+            {
+                throw new FileNotFoundException("Document file not found", storageUrl);
+            }
+
+            // Get file extension to determine how to read
+            var extension = Path.GetExtension(storageUrl).ToLowerInvariant();
+
+            // For PDF and DOCX files, use DocumentProcessor to extract text
+            if (extension == ".pdf" || extension == ".docx")
+            {
+                // Read file into memory stream
+                using var fileStream = new FileStream(storageUrl, FileMode.Open, FileAccess.Read);
+                using var memoryStream = new MemoryStream();
+                await fileStream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+
+                // Create IFormFile wrapper
+                var formFile = new FormFile(memoryStream, 0, memoryStream.Length, "file", Path.GetFileName(storageUrl))
+                {
+                    Headers = new HeaderDictionary(),
+                    ContentType = extension == ".pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                };
+
+                // Extract text using document processor
+                return await _docProcessor.ExtractTextFromFileAsync(formFile);
+            }
+
+            // For text files, read directly
+            if (extension == ".txt")
+            {
+                return await File.ReadAllTextAsync(storageUrl);
+            }
+
+            throw new NotSupportedException($"File type '{extension}' is not supported. Supported types: .txt, .pdf, .docx");
         }
 
         private string GenerateAccessCode()

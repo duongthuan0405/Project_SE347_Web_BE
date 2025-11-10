@@ -13,5 +13,7 @@ namespace se347_be.Work.Services.Interfaces
         Task<QuestionBankDetailDTO> CreateQuestionInQuizAsync(Guid quizId, CreateQuestionInQuizDTO dto, Guid creatorId);
         Task AddQuestionToQuizAsync(Guid quizId, Guid questionId, Guid creatorId);
         Task RemoveQuestionFromQuizAsync(Guid quizId, Guid questionId, Guid creatorId);
+        Task<QuizDetailDTO> GenerateQuestionsFromDocumentAsync(Guid quizId, GenerateQuestionsFromDocumentDTO dto, Guid creatorId);
+        Task SaveQuizQuestionsToBankAsync(Guid quizId, Guid creatorId);
     }
 }

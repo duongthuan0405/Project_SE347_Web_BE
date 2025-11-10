@@ -73,6 +73,9 @@ namespace se347_be.Work.Database.Entity
         [DefaultValue("Standard")]
         public string ScoringMode { get; set; } = "Standard"; // "Standard", "Flexible"
 
+        [DefaultValue(false)]
+        public bool QuestionsSavedToBank { get; set; } = false; // Track if AI-generated questions saved to bank
+
         [ForeignKey("CreatorUser")]
         public Guid? CreatorId { get; set; }
 

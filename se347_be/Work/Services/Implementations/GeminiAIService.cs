@@ -18,7 +18,7 @@ namespace se347_be.Work.Services.Implementations
         private readonly ILogger<GeminiAIService> _logger;
         private readonly IQuestionBankRepository _questionBankRepo;
         private readonly MyAppDbContext _context;
-        private const string GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+        private const string GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
         public GeminiAIService(
             HttpClient httpClient, 
@@ -83,11 +83,23 @@ namespace se347_be.Work.Services.Implementations
                 response.EnsureSuccessStatusCode();
                 var responseContent = await response.Content.ReadAsStringAsync();
                 
+                _logger.LogInformation("Gemini API call successful, parsing response...");
                 return ParseGeminiResponse(responseContent, fileName);
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "Failed to call Gemini API");
+                throw new InvalidOperationException("Failed to generate questions from AI", ex);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Re-throw InvalidOperationException from ParseGeminiResponse with context
+                _logger.LogError(ex, "Error parsing Gemini response");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error in GenerateQuestionsFromTextAsync");
                 throw new InvalidOperationException("Failed to generate questions from AI", ex);
             }
         }
@@ -136,19 +148,69 @@ namespace se347_be.Work.Services.Implementations
         {
             try
             {
+                // Log raw response for debugging
+                _logger.LogDebug("Gemini API Response: {Response}", responseContent);
+
                 var jsonDoc = JsonDocument.Parse(responseContent);
-                var candidates = jsonDoc.RootElement.GetProperty("candidates");
                 
-                if (candidates.GetArrayLength() == 0)
+                // Check if candidates exist
+                if (!jsonDoc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
                 {
+                    _logger.LogError("No candidates in Gemini response: {Response}", responseContent);
                     throw new InvalidOperationException("No response from Gemini API");
                 }
 
-                var text = candidates[0]
-                    .GetProperty("content")
-                    .GetProperty("parts")[0]
-                    .GetProperty("text")
-                    .GetString();
+                var candidate = candidates[0];
+
+                // Check finish reason (SAFETY, RECITATION, etc.)
+                if (candidate.TryGetProperty("finishReason", out var finishReasonProp))
+                {
+                    var finishReason = finishReasonProp.GetString();
+                    _logger.LogInformation("Gemini finish reason: {FinishReason}", finishReason);
+
+                    if (finishReason == "SAFETY")
+                    {
+                        throw new InvalidOperationException(
+                            "Content was blocked by Google's safety filters. Please try:\n" +
+                            "- Using more neutral language\n" +
+                            "- Avoiding sensitive topics\n" +
+                            "- Simplifying your additional instructions");
+                    }
+
+                    if (finishReason == "RECITATION")
+                    {
+                        throw new InvalidOperationException(
+                            "Content was blocked due to potential copyright issues. Please use original content.");
+                    }
+
+                    if (finishReason != "STOP" && finishReason != null)
+                    {
+                        _logger.LogWarning("Unexpected finish reason: {FinishReason}", finishReason);
+                    }
+                }
+
+                // Check content exists
+                if (!candidate.TryGetProperty("content", out var content))
+                {
+                    _logger.LogError("No content in candidate: {Candidate}", candidate.ToString());
+                    throw new InvalidOperationException("Invalid response structure from Gemini API");
+                }
+
+                // Check parts exist
+                if (!content.TryGetProperty("parts", out var parts) || parts.GetArrayLength() == 0)
+                {
+                    _logger.LogError("No parts in content: {Content}", content.ToString());
+                    throw new InvalidOperationException("Invalid response structure from Gemini API");
+                }
+
+                // Check text exists
+                if (!parts[0].TryGetProperty("text", out var textProp))
+                {
+                    _logger.LogError("No text in parts: {Parts}", parts.ToString());
+                    throw new InvalidOperationException("No text content in Gemini response");
+                }
+
+                var text = textProp.GetString();
 
                 if (string.IsNullOrEmpty(text))
                 {

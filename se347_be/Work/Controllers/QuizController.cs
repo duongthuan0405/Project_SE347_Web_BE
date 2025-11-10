@@ -284,6 +284,71 @@ namespace se347_be.Work.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Generate questions from uploaded document and add to existing quiz
+        /// Flow: 1. Create Quiz → 2. Upload Document → 3. Generate Questions
+        /// Questions will be created with category = "AI"
+        /// Auto-saved to Question Bank when quiz is published
+        /// </summary>
+        [HttpPost("{quizId}/generate-questions-from-document")]
+        public async Task<ActionResult<QuizDetailDTO>> GenerateQuestionsFromDocument(
+            [FromRoute] Guid quizId,
+            [FromBody] GenerateQuestionsFromDocumentDTO dto)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var quiz = await _quizService.GenerateQuestionsFromDocumentAsync(quizId, dto, userId);
+                return Ok(quiz);
+            }
+            catch (InvalidDataException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (FileNotFoundException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = $"AI Generation failed: {ex.Message}" });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Manually save quiz questions to bank (if not auto-saved yet)
+        /// </summary>
+        [HttpPost("{quizId}/save-to-bank")]
+        public async Task<ActionResult> SaveQuizQuestionsToBank([FromRoute] Guid quizId)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                await _quizService.SaveQuizQuestionsToBankAsync(quizId, userId);
+                return Ok(new { Message = "Questions saved to bank successfully" });
+            }
+            catch (InvalidDataException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
     }
 }
 
