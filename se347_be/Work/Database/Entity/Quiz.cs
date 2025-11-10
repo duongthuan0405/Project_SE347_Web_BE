@@ -69,6 +69,10 @@ namespace se347_be.Work.Database.Entity
         [DefaultValue("AllAtOnce")]
         public string PresentationMode { get; set; } = "AllAtOnce"; // "AllAtOnce", "OneByOne"
 
+        [Required, Column(TypeName = "varchar(20)")]
+        [DefaultValue("Standard")]
+        public string ScoringMode { get; set; } = "Standard"; // "Standard", "Flexible"
+
         [ForeignKey("CreatorUser")]
         public Guid? CreatorId { get; set; }
 

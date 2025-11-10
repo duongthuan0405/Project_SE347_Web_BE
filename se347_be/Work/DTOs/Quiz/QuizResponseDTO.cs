@@ -17,6 +17,10 @@ namespace se347_be.Work.DTOs.Quiz
         public string AccessType { get; set; } = "Public";
         public bool ShowScoreAfterSubmission { get; set; }
         public bool SendResultEmail { get; set; }
+        public string ShowCorrectAnswersMode { get; set; } = "Never";
+        public bool AllowNavigationBack { get; set; } = true;
+        public string PresentationMode { get; set; } = "AllAtOnce";
+        public string ScoringMode { get; set; } = "Standard";
         public Guid? CreatorId { get; set; }
         public int TotalQuestions { get; set; }
         public int TotalParticipants { get; set; }

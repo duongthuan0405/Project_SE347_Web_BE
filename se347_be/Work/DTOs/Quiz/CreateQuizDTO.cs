@@ -39,5 +39,8 @@ namespace se347_be.Work.DTOs.Quiz
 
         [StringLength(20)]
         public string PresentationMode { get; set; } = "AllAtOnce"; // "AllAtOnce", "OneByOne"
+
+        [StringLength(20)]
+        public string ScoringMode { get; set; } = "Standard"; // "Standard" (equal points), "Flexible" (custom points per question)
     }
 }

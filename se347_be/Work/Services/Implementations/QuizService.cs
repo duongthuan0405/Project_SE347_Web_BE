@@ -68,6 +68,7 @@ namespace se347_be.Work.Services.Implementations
                 ShowCorrectAnswersMode = createQuizDTO.ShowCorrectAnswersMode,
                 AllowNavigationBack = createQuizDTO.AllowNavigationBack,
                 PresentationMode = createQuizDTO.PresentationMode,
+                ScoringMode = createQuizDTO.ScoringMode,
                 CreatorId = creatorId,
                 CreateAt = DateTime.Now
             };
@@ -91,6 +92,10 @@ namespace se347_be.Work.Services.Implementations
                 AccessType = quiz.AccessType,
                 ShowScoreAfterSubmission = quiz.ShowScoreAfterSubmission,
                 SendResultEmail = quiz.SendResultEmail,
+                ShowCorrectAnswersMode = quiz.ShowCorrectAnswersMode,
+                AllowNavigationBack = quiz.AllowNavigationBack,
+                PresentationMode = quiz.PresentationMode,
+                ScoringMode = quiz.ScoringMode,
                 CreatorId = quiz.CreatorId,
                 TotalQuestions = 0,
                 TotalParticipants = 0
@@ -118,6 +123,10 @@ namespace se347_be.Work.Services.Implementations
                 AccessType = q.AccessType,
                 ShowScoreAfterSubmission = q.ShowScoreAfterSubmission,
                 SendResultEmail = q.SendResultEmail,
+                ShowCorrectAnswersMode = q.ShowCorrectAnswersMode,
+                AllowNavigationBack = q.AllowNavigationBack,
+                PresentationMode = q.PresentationMode,
+                ScoringMode = q.ScoringMode,
                 CreatorId = q.CreatorId,
                 TotalQuestions = q.QuizQuestions?.Count ?? 0,
                 TotalParticipants = q.Participations?.Count ?? 0
@@ -152,8 +161,13 @@ namespace se347_be.Work.Services.Implementations
                 IsShuffleQuestions = quiz.IsShuffleQuestions,
                 DurationInMinutes = quiz.DurationInMinutes,
                 AccessCode = quiz.AccessCode,
+                AccessType = quiz.AccessType,
                 ShowScoreAfterSubmission = quiz.ShowScoreAfterSubmission,
                 SendResultEmail = quiz.SendResultEmail,
+                ShowCorrectAnswersMode = quiz.ShowCorrectAnswersMode,
+                AllowNavigationBack = quiz.AllowNavigationBack,
+                PresentationMode = quiz.PresentationMode,
+                ScoringMode = quiz.ScoringMode,
                 CreatorId = quiz.CreatorId,
                 Questions = quiz.QuizQuestions?
                     .OrderBy(qq => qq.OrderIndex)
@@ -238,6 +252,9 @@ namespace se347_be.Work.Services.Implementations
             if (updateQuizDTO.PresentationMode != null)
                 quiz.PresentationMode = updateQuizDTO.PresentationMode;
 
+            if (updateQuizDTO.ScoringMode != null)
+                quiz.ScoringMode = updateQuizDTO.ScoringMode;
+
             // Validate time range after all updates
             if (quiz.StartTime.HasValue && quiz.DueTime.HasValue)
             {
@@ -272,6 +289,10 @@ namespace se347_be.Work.Services.Implementations
                 AccessType = quiz.AccessType,
                 ShowScoreAfterSubmission = quiz.ShowScoreAfterSubmission,
                 SendResultEmail = quiz.SendResultEmail,
+                ShowCorrectAnswersMode = quiz.ShowCorrectAnswersMode,
+                AllowNavigationBack = quiz.AllowNavigationBack,
+                PresentationMode = quiz.PresentationMode,
+                ScoringMode = quiz.ScoringMode,
                 CreatorId = quiz.CreatorId,
                 TotalQuestions = 0,
                 TotalParticipants = quiz.Participations?.Count ?? 0

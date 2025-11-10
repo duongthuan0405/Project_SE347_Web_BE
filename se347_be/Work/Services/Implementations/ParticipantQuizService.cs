@@ -386,27 +386,76 @@ namespace se347_be.Work.Services.Implementations
             var selectedAnswers = await _context.AnswerSelections
                 .Where(s => s.ParticipationId == participationId)
                 .Include(s => s.Answer)
-                .ThenInclude(a => a!.Question)
                 .ToListAsync();
 
-            int correctCount = selectedAnswers.Count(s => s.Answer!.IsCorrectAnswer);
-            int totalQuestions = quiz.QuizQuestions?.Count ?? 0;
+            var questions = quiz.QuizQuestions?.Select(qq => qq.Question!).ToList() ?? new List<Question>();
+            int totalQuestions = questions.Count;
 
-            // Calculate total possible points (sum of all question points)
-            int totalPoints = quiz.QuizQuestions?.Sum(qq => qq.Question!.Points) ?? totalQuestions;
-            
-            // Calculate earned points (sum of points from correct answers)
-            int earnedPoints = 0;
-            foreach (var selection in selectedAnswers)
+            // Calculate correct question count by checking each QUESTION (not each answer)
+            int correctQuestionCount = 0;
+
+            foreach (var question in questions)
             {
-                if (selection.Answer!.IsCorrectAnswer)
+                // Get all correct answer IDs for this question
+                var correctAnswerIds = question.Answers?
+                    .Where(a => a.IsCorrectAnswer)
+                    .Select(a => a.Id)
+                    .ToHashSet() ?? new HashSet<Guid>();
+
+                // Get user's selected answer IDs for this question
+                var selectedAnswerIds = selectedAnswers
+                    .Where(s => s.Answer?.QuestionId == question.Id)
+                    .Select(s => s.AnswerId)
+                    .ToHashSet();
+
+                // Check if question is answered COMPLETELY correct:
+                // 1. All correct answers selected
+                // 2. No wrong answers selected
+                bool isQuestionCorrect = correctAnswerIds.SetEquals(selectedAnswerIds);
+
+                if (isQuestionCorrect)
                 {
-                    earnedPoints += selection.Answer.Question?.Points ?? 1;
+                    correctQuestionCount++;
                 }
             }
 
-            // Scale score to 10 points (not 100)
-            decimal score = totalPoints > 0 ? (decimal)earnedPoints / totalPoints * 10 : 0;
+            // Calculate score based on ScoringMode
+            decimal score;
+            int displayTotalPoints;
+
+            if (quiz.ScoringMode == "Standard")
+            {
+                // Standard: Equal points per question (10 / totalQuestions * correctCount)
+                score = totalQuestions > 0 ? (decimal)correctQuestionCount / totalQuestions * 10 : 0;
+                displayTotalPoints = 10; // Always show "X/10 points" in standard mode
+            }
+            else // Flexible
+            {
+                // Flexible: Custom points per question
+                int totalPoints = questions.Sum(q => q.Points);
+                int earnedPoints = 0;
+
+                foreach (var question in questions)
+                {
+                    var correctAnswerIds = question.Answers?
+                        .Where(a => a.IsCorrectAnswer)
+                        .Select(a => a.Id)
+                        .ToHashSet() ?? new HashSet<Guid>();
+
+                    var selectedAnswerIds = selectedAnswers
+                        .Where(s => s.Answer?.QuestionId == question.Id)
+                        .Select(s => s.AnswerId)
+                        .ToHashSet();
+
+                    if (correctAnswerIds.SetEquals(selectedAnswerIds))
+                    {
+                        earnedPoints += question.Points;
+                    }
+                }
+
+                score = totalPoints > 0 ? (decimal)earnedPoints / totalPoints * 10 : 0;
+                displayTotalPoints = totalPoints;
+            }
 
             // Update participation
             participation.SubmitTime = DateTime.Now;
@@ -428,7 +477,7 @@ namespace se347_be.Work.Services.Implementations
                         participation.FullName ?? "Participant",
                         quiz.Title,
                         participation.Score.Value,
-                        correctCount,
+                        correctQuestionCount,
                         totalQuestions
                     );
                 }
@@ -445,10 +494,10 @@ namespace se347_be.Work.Services.Implementations
                 SubmitTime = participation.SubmitTime.Value,
                 Score = quiz.ShowScoreAfterSubmission ? participation.Score : null,
                 TotalQuestions = totalQuestions,
-                CorrectAnswers = quiz.ShowScoreAfterSubmission ? correctCount : 0,
+                CorrectAnswers = quiz.ShowScoreAfterSubmission ? correctQuestionCount : 0,
                 ShowScore = quiz.ShowScoreAfterSubmission,
                 Message = quiz.ShowScoreAfterSubmission 
-                    ? $"You scored {participation.Score:F2}%!" 
+                    ? $"You scored {participation.Score:F2}/{displayTotalPoints} points!" 
                     : "Quiz submitted successfully! Results will be sent to your email."
             };
         }
@@ -523,22 +572,52 @@ namespace se347_be.Work.Services.Implementations
                 .Include(s => s.Answer)
                 .ToListAsync();
 
-            int correctCount = selectedAnswers.Count(s => s.Answer!.IsCorrectAnswer);
-            int totalQuestions = quiz.QuizQuestions?.Count ?? 0;
+            // Get all questions and calculate correct count properly
+            var quizWithQuestions = await _context.Quizzes
+                .Include(q => q.QuizQuestions)
+                    .ThenInclude(qq => qq.Question)
+                        .ThenInclude(q => q!.Answers)
+                .FirstOrDefaultAsync(q => q.Id == participation.QuizId);
+
+            var questions = quizWithQuestions?.QuizQuestions?.Select(qq => qq.Question!).ToList() ?? new List<Question>();
+            int totalQuestions = questions.Count;
+            
+            // Determine display total based on ScoringMode
+            int displayTotalPoints = quiz.ScoringMode == "Standard" ? 10 : questions.Sum(q => q.Points);
+
+            // Calculate correct question count
+            int correctCount = 0;
+            foreach (var question in questions)
+            {
+                var correctAnswerIds = question.Answers?
+                    .Where(a => a.IsCorrectAnswer)
+                    .Select(a => a.Id)
+                    .ToHashSet() ?? new HashSet<Guid>();
+
+                var selectedAnswerIds = selectedAnswers
+                    .Where(s => s.Answer?.QuestionId == question.Id)
+                    .Select(s => s.AnswerId)
+                    .ToHashSet();
+
+                if (correctAnswerIds.SetEquals(selectedAnswerIds))
+                {
+                    correctCount++;
+                }
+            }
 
             // Build message based on what user can see
             string message;
             if (showScore && showCorrectAnswers)
             {
-                message = $"You scored {participation.Score:F2} points! Correct answers: {correctCount}/{totalQuestions}";
+                message = $"You scored {participation.Score:F2}/{displayTotalPoints} points! Correct questions: {correctCount}/{totalQuestions}";
             }
             else if (showScore)
             {
-                message = $"You scored {participation.Score:F2} points!";
+                message = $"You scored {participation.Score:F2}/{displayTotalPoints} points!";
             }
             else if (showCorrectAnswers)
             {
-                message = $"Quiz submitted. You got {correctCount}/{totalQuestions} correct.";
+                message = $"Quiz submitted. You got {correctCount}/{totalQuestions} questions correct.";
             }
             else
             {
