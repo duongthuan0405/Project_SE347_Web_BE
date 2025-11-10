@@ -134,5 +134,164 @@ namespace se347_be.Work.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
             }
         }
+
+        [HttpGet("{id}/link")]
+        public async Task<ActionResult<DTOs.Quiz.GenerateQuizLinkDTO>> GetQuizLink([FromRoute] Guid id)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var quiz = await _quizService.GetQuizDetailAsync(id, userId);
+                
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                var publicLink = $"{baseUrl}/quiz/{id}";
+
+                return Ok(new DTOs.Quiz.GenerateQuizLinkDTO
+                {
+                    QuizId = quiz.Id,
+                    PublicLink = publicLink,
+                    AccessCode = quiz.AccessCode,
+                    RequiresAccessCode = !string.IsNullOrEmpty(quiz.AccessCode)
+                });
+            }
+            catch (InvalidDataException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
+
+        [HttpPut("{id}/reset-access-code")]
+        public async Task<ActionResult<DTOs.Quiz.GenerateAccessCodeDTO>> ResetAccessCode([FromRoute] Guid id)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var quiz = await _quizService.GetQuizDetailAsync(id, userId);
+                
+                // Generate new random 6-character access code
+                const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+                var random = new Random();
+                var accessCode = new string(Enumerable.Repeat(chars, 6)
+                    .Select(s => s[random.Next(s.Length)]).ToArray());
+                
+                await _quizService.UpdateQuizAsync(id, new UpdateQuizDTO 
+                { 
+                    AccessCode = accessCode 
+                }, userId);
+
+                return Ok(new DTOs.Quiz.GenerateAccessCodeDTO
+                {
+                    AccessCode = accessCode,
+                    Message = "Access code reset successfully"
+                });
+            }
+            catch (InvalidDataException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
+
+        [HttpPost("{quizId}/questions")]
+        public async Task<ActionResult> CreateQuestionInQuiz(
+            [FromRoute] Guid quizId,
+            [FromBody] CreateQuestionInQuizDTO dto)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var question = await _quizService.CreateQuestionInQuizAsync(quizId, dto, userId);
+                return Ok(new { 
+                    Message = "Question created and added to quiz successfully",
+                    Question = question
+                });
+            }
+            catch (InvalidDataException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
+
+        [HttpPost("{quizId}/add-question")]
+        public async Task<ActionResult> AddQuestionToQuiz(
+            [FromRoute] Guid quizId,
+            [FromBody] AddQuestionToQuizDTO dto)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                await _quizService.AddQuestionToQuizAsync(quizId, dto.QuestionId, userId);
+                return Ok(new { Message = "Question added to quiz successfully" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
+
+        [HttpDelete("{quizId}/remove-question/{questionId}")]
+        public async Task<ActionResult> RemoveQuestionFromQuiz(
+            [FromRoute] Guid quizId,
+            [FromRoute] Guid questionId)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                await _quizService.RemoveQuestionFromQuizAsync(quizId, questionId, userId);
+                return Ok(new { Message = "Question removed from quiz successfully" });
+            }
+            catch (InvalidDataException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
+    }
+}
+
+// DTO for add-question endpoint
+namespace se347_be.Work.DTOs.Quiz
+{
+    public class AddQuestionToQuizDTO
+    {
+        public Guid QuestionId { get; set; }
     }
 }

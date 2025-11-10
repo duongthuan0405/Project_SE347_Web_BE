@@ -32,8 +32,9 @@ namespace se347_be.Work.Repositories.Implementations
         {
             return await _db.QuizParticipations
                 .Include(p => p.Quiz!)
-                    .ThenInclude(q => q.Questions!)
-                        .ThenInclude(q => q.Answers!)
+                    .ThenInclude(q => q.QuizQuestions!)
+                        .ThenInclude(qq => qq.Question!)
+                            .ThenInclude(q => q.Answers!)
                 .Include(p => p.AnswerSelections!)
                     .ThenInclude(a => a.Answer)
                         .ThenInclude(a => a.Question!)

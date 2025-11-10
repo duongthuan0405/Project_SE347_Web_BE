@@ -25,7 +25,5 @@ namespace se347_be.Work.Database.Entity
         // Navigation 
         public AppUserProfile? AppUserProfile { get; set; }
         public List<Quiz>? QuizzesCreated { get; set; }
-        public List<QuizParticipation>? Participations { get; set; }
-       
     }
 }

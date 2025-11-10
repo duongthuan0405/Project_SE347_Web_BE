@@ -31,8 +31,9 @@ namespace se347_be.Work.Repositories.Implementations
         public async Task<Quiz?> GetQuizWithQuestionsAsync(Guid id)
         {
             return await _db.Quizzes
-                .Include(q => q.Questions!)
-                    .ThenInclude(q => q.Answers!)
+                .Include(q => q.QuizQuestions!)
+                    .ThenInclude(qq => qq.Question!)
+                        .ThenInclude(q => q.Answers!)
                 .Include(q => q.Participations)
                 .FirstOrDefaultAsync(q => q.Id == id);
         }
@@ -40,7 +41,8 @@ namespace se347_be.Work.Repositories.Implementations
         public async Task<List<Quiz>> GetQuizzesByCreatorIdAsync(Guid creatorId)
         {
             return await _db.Quizzes
-                .Include(q => q.Questions)
+                .Include(q => q.QuizQuestions)
+                    .ThenInclude(qq => qq.Question)
                 .Include(q => q.Participations)
                 .Where(q => q.CreatorId == creatorId)
                 .OrderByDescending(q => q.CreateAt)

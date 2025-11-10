@@ -45,6 +45,17 @@ public class Program
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+        
+        // Add CORS
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
         #endregion
 
         #region JWT
@@ -71,10 +82,11 @@ public class Program
         builder.Services.AddScoped<IQuizRepository, QuizRepository>();
         builder.Services.AddScoped<IQuizService, QuizService>();
 
-        // Question Module
+        // Question Bank Module (NEW Architecture)
         builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
         builder.Services.AddScoped<IAnswerRepository, AnswerRepository>();
-        builder.Services.AddScoped<IQuestionService, QuestionService>();
+        builder.Services.AddScoped<IQuestionBankRepository, QuestionBankRepository>();
+        builder.Services.AddScoped<IQuestionBankService, QuestionBankService>();
 
         // Invite Module
         builder.Services.AddScoped<IInviteService, InviteService>();
@@ -82,6 +94,17 @@ public class Program
         // Statistics Module
         builder.Services.AddScoped<IParticipationRepository, ParticipationRepository>();
         builder.Services.AddScoped<IStatisticsService, StatisticsService>();
+
+        // ParticipantList Module
+        builder.Services.AddScoped<IParticipantListRepository, ParticipantListRepository>();
+        builder.Services.AddScoped<IParticipantListService, ParticipantListService>();
+
+        // AI Module
+        builder.Services.AddHttpClient<IGeminiAIService, GeminiAIService>();
+        builder.Services.AddScoped<IDocumentProcessorService, DocumentProcessorService>();
+
+        // Participant Quiz Module
+        builder.Services.AddScoped<IParticipantQuizService, ParticipantQuizService>();
 
         builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
         builder.Services.AddScoped<IEmail, EmailService>();
@@ -131,13 +154,16 @@ public class Program
             app.UseSwaggerUI();
         }
 
-        using (var scope = app.Services.CreateScope())
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<MyAppDbContext>();
-            // Apply any pending migrations
-            dbContext.Database.Migrate();
-        }
+        // Skip auto-migration if database already exists
+        // using (var scope = app.Services.CreateScope())
+        // {
+        //     var dbContext = scope.ServiceProvider.GetRequiredService<MyAppDbContext>();
+        //     // Apply any pending migrations
+        //     dbContext.Database.Migrate();
+        // }
         
+        app.UseCors("AllowAll");
+        app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
         app.Run();

@@ -35,9 +35,14 @@ namespace se347_be.Work.Repositories.Implementations
 
         public async Task<List<Question>> GetQuestionsByQuizIdAsync(Guid quizId)
         {
+            var questionIds = await _db.QuizQuestions
+                .Where(qq => qq.QuizId == quizId)
+                .Select(qq => qq.QuestionId)
+                .ToListAsync();
+
             return await _db.Questions
                 .Include(q => q.Answers)
-                .Where(q => q.QuizId == quizId)
+                .Where(q => questionIds.Contains(q.Id))
                 .ToListAsync();
         }
 
@@ -59,8 +64,8 @@ namespace se347_be.Work.Repositories.Implementations
 
         public async Task<bool> IsQuestionInQuizAsync(Guid questionId, Guid quizId)
         {
-            return await _db.Questions
-                .AnyAsync(q => q.Id == questionId && q.QuizId == quizId);
+            return await _db.QuizQuestions
+                .AnyAsync(qq => qq.QuestionId == questionId && qq.QuizId == quizId);
         }
     }
 }

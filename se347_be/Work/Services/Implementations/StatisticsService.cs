@@ -36,14 +36,11 @@ namespace se347_be.Work.Services.Implementations
 
             var participations = await _participationRepository.GetParticipationsByQuizIdAsync(quizId);
 
-            var totalQuestions = quiz.Questions?.Count ?? 0;
-            var scores = new List<double>();
-
-            foreach (var participation in participations)
-            {
-                var score = CalculateScore(participation, totalQuestions);
-                scores.Add(score);
-            }
+            // Use stored scores (already calculated correctly with points system)
+            var scores = participations
+                .Where(p => p.Score.HasValue)
+                .Select(p => (double)p.Score!.Value)
+                .ToList();
 
             var averageScore = scores.Any() ? scores.Average() : 0;
 
@@ -83,7 +80,6 @@ namespace se347_be.Work.Services.Implementations
             }
 
             var participations = await _participationRepository.GetParticipationsByQuizIdAsync(quizId);
-            var totalQuestions = quiz.Questions?.Count ?? 0;
 
             var result = participations.Select(p => new ParticipationListDTO
             {
@@ -91,7 +87,7 @@ namespace se347_be.Work.Services.Implementations
                 FullName = p.FullName,
                 StudentId = p.StudentId,
                 ClassName = p.ClassName,
-                Score = CalculateScore(p, totalQuestions),
+                Score = (double)(p.Score ?? 0),
                 SubmitTime = p.SubmitTime
             })
             .OrderByDescending(p => p.Score)
@@ -114,39 +110,41 @@ namespace se347_be.Work.Services.Implementations
                 throw new UnauthorizedAccessException("You don't have permission to view this participation");
             }
 
-            var totalQuestions = participation.Quiz.Questions?.Count ?? 0;
-            var score = CalculateScore(participation, totalQuestions);
+            var score = (double)(participation.Score ?? 0);
             var correctCount = 0;
 
             var details = new List<QuestionResultDTO>();
+            var questions = participation.Quiz.QuizQuestions?
+                .OrderBy(qq => qq.OrderIndex)
+                .Select(qq => qq.Question!)
+                .ToList() ?? new List<Question>();
 
-            if (participation.Quiz.Questions != null)
+            var totalQuestions = questions.Count;
+
+            foreach (var question in questions)
             {
-                foreach (var question in participation.Quiz.Questions)
+                var selectedAnswers = participation.AnswerSelections?
+                    .Where(a => a.Answer.QuestionId == question.Id)
+                    .Select(a => a.Answer)
+                    .ToList();
+
+                var correctAnswers = question.Answers?
+                    .Where(a => a.IsCorrectAnswer)
+                    .ToList();
+
+                var selectedAnswer = selectedAnswers?.FirstOrDefault();
+                var correctAnswer = correctAnswers?.FirstOrDefault();
+
+                var isCorrect = selectedAnswer != null && selectedAnswer.IsCorrectAnswer;
+                if (isCorrect) correctCount++;
+
+                details.Add(new QuestionResultDTO
                 {
-                    var selectedAnswers = participation.AnswerSelections?
-                        .Where(a => a.Answer.QuestionId == question.Id)
-                        .Select(a => a.Answer)
-                        .ToList();
-
-                    var correctAnswers = question.Answers?
-                        .Where(a => a.IsCorrectAnswer)
-                        .ToList();
-
-                    var selectedAnswer = selectedAnswers?.FirstOrDefault();
-                    var correctAnswer = correctAnswers?.FirstOrDefault();
-
-                    var isCorrect = selectedAnswer != null && selectedAnswer.IsCorrectAnswer;
-                    if (isCorrect) correctCount++;
-
-                    details.Add(new QuestionResultDTO
-                    {
-                        QuestionContent = question.Content,
-                        SelectedAnswer = selectedAnswer?.Content,
-                        CorrectAnswer = correctAnswer?.Content ?? "",
-                        IsCorrect = isCorrect
-                    });
-                }
+                    QuestionContent = question.Content,
+                    SelectedAnswer = selectedAnswer?.Content,
+                    CorrectAnswer = correctAnswer?.Content ?? "",
+                    IsCorrect = isCorrect
+                });
             }
 
             return new ParticipationDetailDTO
@@ -208,14 +206,5 @@ namespace se347_be.Work.Services.Implementations
             return stream.ToArray();
         }
 
-        private double CalculateScore(se347_be.Work.Database.Entities.QuizParticipation participation, int totalQuestions)
-        {
-            if (totalQuestions == 0) return 0;
-
-            var correctAnswersCount = participation.AnswerSelections?
-                .Count(a => a.Answer.IsCorrectAnswer) ?? 0;
-
-            return Math.Round((double)correctAnswersCount / totalQuestions * 10, 2);
-        }
     }
 }

@@ -4,7 +4,9 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using se347_be.Database;
 using se347_be.Email;
+using se347_be.Work.Database.Entity;
 using se347_be.Work.DTOs.Invite;
 using se347_be.Work.Repositories.Interfaces;
 using se347_be.Work.Services.Interfaces;
@@ -14,15 +16,21 @@ namespace se347_be.Work.Services.Implementations
     public class InviteService : IInviteService
     {
         private readonly IQuizRepository _quizRepository;
+        private readonly IParticipantListRepository _participantListRepository;
+        private readonly MyAppDbContext _context;
         private readonly EmailSettings _emailSettings;
         private readonly IConfiguration _configuration;
 
         public InviteService(
             IQuizRepository quizRepository,
+            IParticipantListRepository participantListRepository,
+            MyAppDbContext context,
             IOptions<EmailSettings> emailSettings,
             IConfiguration configuration)
         {
             _quizRepository = quizRepository;
+            _participantListRepository = participantListRepository;
+            _context = context;
             _emailSettings = emailSettings.Value;
             _configuration = configuration;
         }
@@ -61,13 +69,29 @@ namespace se347_be.Work.Services.Implementations
             var baseUrl = _configuration["AppSettings:BaseUrl"] ?? "http://localhost:5000";
             var quizLink = $"{baseUrl}/quiz/{quizId}";
 
-            // Send emails
+            // Send emails and save to whitelist (for Private access type)
             var response = new InviteResponseDTO();
             foreach (var participant in participants)
             {
                 try
                 {
                     await SendInviteEmailAsync(participant, quiz.Title, quizLink, quiz.StartTime, quiz.DueTime);
+                    
+                    // Add to whitelist for Private quizzes
+                    if (quiz.AccessType == "Private")
+                    {
+                        var invitation = new QuizInvitation
+                        {
+                            Id = Guid.NewGuid(),
+                            QuizId = quizId,
+                            Email = participant.Email,
+                            StudentId = participant.StudentId,
+                            FullName = participant.FullName,
+                            InvitedAt = DateTime.Now
+                        };
+                        _context.QuizInvitations.Add(invitation);
+                    }
+                    
                     response.TotalSent++;
                 }
                 catch (Exception ex)
@@ -76,6 +100,7 @@ namespace se347_be.Work.Services.Implementations
                 }
             }
 
+            await _context.SaveChangesAsync();
             return response;
         }
 
@@ -211,6 +236,110 @@ namespace se347_be.Work.Services.Implementations
             {
                 throw new Exception($"Failed to send email to {participant.Email}: {ex.Message}");
             }
+        }
+
+        public async Task<InviteResponseDTO> SendInvitesFromListsAsync(Guid quizId, List<Guid> participantListIds, Guid creatorId)
+        {
+            // Verify quiz ownership
+            var isOwned = await _quizRepository.IsQuizOwnedByUserAsync(quizId, creatorId);
+            if (!isOwned)
+            {
+                throw new UnauthorizedAccessException("You don't have permission to send invites for this quiz");
+            }
+
+            // Get quiz details
+            var quiz = await _quizRepository.GetQuizByIdAsync(quizId);
+            if (quiz == null)
+            {
+                throw new InvalidDataException("Quiz not found");
+            }
+
+            // Check if quiz is published
+            if (!quiz.IsPublish)
+            {
+                throw new InvalidDataException("Cannot send invites for unpublished quiz");
+            }
+
+            // Collect all participants from the lists
+            var allParticipants = new List<ParticipantInfoDTO>();
+            
+            foreach (var listId in participantListIds)
+            {
+                var participantList = await _participantListRepository.GetByIdWithParticipantsAsync(listId);
+                
+                if (participantList == null)
+                {
+                    continue; // Skip non-existent lists
+                }
+
+                // Verify list ownership
+                if (participantList.CreatorId != creatorId)
+                {
+                    continue; // Skip lists not owned by creator
+                }
+
+                // Convert participants to DTO
+                if (participantList.Participants != null)
+                {
+                    foreach (var participant in participantList.Participants)
+                    {
+                        // Avoid duplicate emails
+                        if (!allParticipants.Any(p => p.Email == participant.Email))
+                        {
+                            allParticipants.Add(new ParticipantInfoDTO
+                            {
+                                FullName = participant.FullName,
+                                Email = participant.Email,
+                                StudentId = participant.StudentId ?? "",
+                                ClassName = ""
+                            });
+                        }
+                    }
+                }
+            }
+
+            if (!allParticipants.Any())
+            {
+                throw new InvalidDataException("No valid participants found in the selected lists");
+            }
+
+            // Generate quiz link
+            var baseUrl = _configuration["AppSettings:BaseUrl"] ?? "http://localhost:5000";
+            var quizLink = $"{baseUrl}/quiz/{quizId}";
+
+            // Send emails and save to whitelist
+            var response = new InviteResponseDTO();
+            foreach (var participant in allParticipants)
+            {
+                try
+                {
+                    await SendInviteEmailAsync(participant, quiz.Title, quizLink, quiz.StartTime, quiz.DueTime);
+                    
+                    // Add to whitelist for Private quizzes
+                    if (quiz.AccessType == "Private")
+                    {
+                        var invitation = new QuizInvitation
+                        {
+                            Id = Guid.NewGuid(),
+                            QuizId = quizId,
+                            Email = participant.Email,
+                            StudentId = participant.StudentId,
+                            FullName = participant.FullName,
+                            InvitedAt = DateTime.Now
+                        };
+                        _context.QuizInvitations.Add(invitation);
+                    }
+                    
+                    response.TotalSent++;
+                }
+                catch (Exception ex)
+                {
+                    response.Failed.Add($"{participant.Email}: {ex.Message}");
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return response;
         }
     }
 }

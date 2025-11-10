@@ -63,5 +63,36 @@ namespace se347_be.Work.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
             }
         }
+
+        [HttpPost("from-lists")]
+        public async Task<ActionResult<InviteResponseDTO>> SendInvitesFromLists(
+            [FromRoute] Guid quizId,
+            [FromBody] InviteFromListDTO dto)
+        {
+            try
+            {
+                if (dto.ParticipantListIds == null || !dto.ParticipantListIds.Any())
+                {
+                    return BadRequest(new { Message = "Please provide at least one participant list" });
+                }
+
+                var userId = GetCurrentUserId();
+                var result = await _inviteService.SendInvitesFromListsAsync(quizId, dto.ParticipantListIds, userId);
+                
+                return Ok(result);
+            }
+            catch (InvalidDataException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
     }
 }

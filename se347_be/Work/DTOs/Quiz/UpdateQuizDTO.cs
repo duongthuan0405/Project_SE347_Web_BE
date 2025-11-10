@@ -21,5 +21,22 @@ namespace se347_be.Work.DTOs.Quiz
         public bool? IsShuffleAnswers { get; set; }
 
         public bool? IsShuffleQuestions { get; set; }
+
+        public int? DurationInMinutes { get; set; }
+
+        [StringLength(50)]
+        public string? AccessCode { get; set; }
+
+        public bool? ShowScoreAfterSubmission { get; set; }
+
+        public bool? SendResultEmail { get; set; }
+
+        [StringLength(20)]
+        public string? ShowCorrectAnswersMode { get; set; } // "Never", "Immediately", "AfterDueTime"
+
+        public bool? AllowNavigationBack { get; set; }
+
+        [StringLength(20)]
+        public string? PresentationMode { get; set; } // "AllAtOnce", "OneByOne"
     }
 }
