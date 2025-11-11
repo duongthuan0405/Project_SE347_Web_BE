@@ -18,7 +18,7 @@ namespace se347_be.Work.Services.Implementations
             _userProfileRepo = userProfileRepository;
         }
 
-        public async Task<UserProfileDTO?> GetProfileByIdAsync(string id)
+        public async Task<UserProfileResponseDTO?> GetProfileByIdAsync(string id)
         {
             Guid guid = Guid.Parse(id);
             AppUserProfile? appUserProfile = await _userProfileRepo.GetProfileByIdAsync(guid);
@@ -27,7 +27,7 @@ namespace se347_be.Work.Services.Implementations
                 return null;
             }
 
-            UserProfileDTO userProfileDTO = new UserProfileDTO()
+            UserProfileResponseDTO userProfileDTO = new UserProfileResponseDTO()
             {
                 Id = appUserProfile.Id.ToString(),
                 FirstName = appUserProfile.FirstName,
@@ -38,23 +38,18 @@ namespace se347_be.Work.Services.Implementations
             return userProfileDTO;
         }
 
-        public async Task<UserProfileDTO?> UpdateProfileAsync(UserProfileDTO userProfileDTO)
+        public async Task<UserProfileResponseDTO?> UpdateProfileAsync(string id, UpdateUserProfileRequestDTO updateRequest, string? avatarURL)
         {
-            AppUserProfile? profileExistInDb = await _userProfileRepo.GetProfileByIdAsync(Guid.Parse(userProfileDTO.Id));
-            if (profileExistInDb == null)
-            {
-                return null;
-            }
-
             AppUserProfile appUserProfile = new AppUserProfile()
             {
-                FirstName = userProfileDTO.FirstName ?? profileExistInDb.FirstName,
-                LastName = userProfileDTO.LastName ?? profileExistInDb.LastName,
-                Avatar = userProfileDTO.Avatar ?? profileExistInDb.Avatar
+                Id = Guid.Parse(id),
+                FirstName = updateRequest.FirstName ?? "",
+                LastName = updateRequest.LastName ?? "",
+                Avatar = avatarURL ?? ""
             };
 
             var result = await _userProfileRepo.UpdateUserProfileAsync(appUserProfile);
-            return new UserProfileDTO()
+            return new UserProfileResponseDTO()
             {
                 Id = result?.Id.ToString() ?? "",
                 FirstName = result?.FirstName,

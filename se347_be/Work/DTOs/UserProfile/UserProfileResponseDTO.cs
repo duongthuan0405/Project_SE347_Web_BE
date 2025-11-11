@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace se347_be.Work.DTOs.UserProfile
 {
-    public class UserProfileDTO
+    public class UserProfileResponseDTO
     {
         public string Id { get; set; } = "";
         public string? LastName { get; set; } = null!;

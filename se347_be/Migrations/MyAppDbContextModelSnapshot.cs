@@ -39,15 +39,22 @@ namespace se347_be.Migrations
 
             modelBuilder.Entity("se347_be.Work.Database.Entities.AnswerSelection", b =>
                 {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("AnswerId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("ParticipationId")
                         .HasColumnType("uuid");
 
-                    b.HasKey("AnswerId", "ParticipationId");
+                    b.HasKey("Id");
 
-                    b.HasIndex("ParticipationId");
+                    b.HasIndex("AnswerId");
+
+                    b.HasIndex("ParticipationId", "AnswerId")
+                        .IsUnique();
 
                     b.ToTable("AnswerSelection");
                 });
@@ -61,17 +68,26 @@ namespace se347_be.Migrations
                     b.Property<string>("ClassName")
                         .HasColumnType("varchar(50)");
 
-                    b.Property<string>("FullName")
+                    b.Property<string>("Email")
                         .HasColumnType("varchar(255)");
 
-                    b.Property<Guid?>("ParticipantId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("FullName")
+                        .HasColumnType("varchar(255)");
 
                     b.Property<DateTime>("ParticipationTime")
                         .HasColumnType("timestamp");
 
                     b.Property<Guid?>("QuizId")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal?>("Score")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("ShuffledAnswersJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ShuffledQuestionsJson")
+                        .HasColumnType("text");
 
                     b.Property<string>("StudentId")
                         .HasColumnType("varchar(100)");
@@ -80,8 +96,6 @@ namespace se347_be.Migrations
                         .HasColumnType("timestamp");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ParticipantId");
 
                     b.HasIndex("QuizId");
 
@@ -154,6 +168,53 @@ namespace se347_be.Migrations
                     b.ToTable("UserProfile");
                 });
 
+            modelBuilder.Entity("se347_be.Work.Database.Entity.Participant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<Guid>("ListId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StudentId")
+                        .HasColumnType("varchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListId");
+
+                    b.ToTable("Participant");
+                });
+
+            modelBuilder.Entity("se347_be.Work.Database.Entity.ParticipantList", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatorId");
+
+                    b.ToTable("ParticipantList");
+                });
+
             modelBuilder.Entity("se347_be.Work.Database.Entity.PendingUser", b =>
                 {
                     b.Property<string>("Email")
@@ -188,16 +249,25 @@ namespace se347_be.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Category")
+                        .HasColumnType("varchar(100)");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("varchar(255)");
 
-                    b.Property<Guid?>("QuizId")
+                    b.Property<Guid?>("CreatorId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDraft")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("QuizId");
+                    b.HasIndex("CreatorId");
 
                     b.ToTable("Question");
                 });
@@ -207,6 +277,16 @@ namespace se347_be.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("AccessCode")
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("AccessType")
+                        .IsRequired()
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<bool>("AllowNavigationBack")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("CreateAt")
                         .HasColumnType("timestamp");
@@ -220,6 +300,9 @@ namespace se347_be.Migrations
                     b.Property<DateTime?>("DueTime")
                         .HasColumnType("timestamp");
 
+                    b.Property<int?>("DurationInMinutes")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsPublish")
                         .HasColumnType("boolean");
 
@@ -231,6 +314,27 @@ namespace se347_be.Migrations
 
                     b.Property<int>("MaxTimesCanAttempt")
                         .HasColumnType("integer");
+
+                    b.Property<string>("PresentationMode")
+                        .IsRequired()
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<bool>("QuestionsSavedToBank")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ScoringMode")
+                        .IsRequired()
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<bool>("SendResultEmail")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ShowCorrectAnswersMode")
+                        .IsRequired()
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<bool>("ShowScoreAfterSubmission")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("StartTime")
                         .HasColumnType("timestamp");
@@ -244,6 +348,84 @@ namespace se347_be.Migrations
                     b.HasIndex("CreatorId");
 
                     b.ToTable("Quiz");
+                });
+
+            modelBuilder.Entity("se347_be.Work.Database.Entity.QuizInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("FullName")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("InvitedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<Guid>("QuizId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StudentId")
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuizId");
+
+                    b.ToTable("QuizInvitation");
+                });
+
+            modelBuilder.Entity("se347_be.Work.Database.Entity.QuizQuestion", b =>
+                {
+                    b.Property<Guid>("QuizId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer");
+
+                    b.HasKey("QuizId", "QuestionId");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("QuizQuestion");
+                });
+
+            modelBuilder.Entity("se347_be.Work.Database.Entity.QuizSourceDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<Guid>("QuizId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("StorageUrl")
+                        .IsRequired()
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime?>("UploadAt")
+                        .HasColumnType("timestamptz");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuizId");
+
+                    b.ToTable("QuizSourceDocument");
                 });
 
             modelBuilder.Entity("se347_be.Work.Database.Entities.AnswerSelection", b =>
@@ -267,15 +449,9 @@ namespace se347_be.Migrations
 
             modelBuilder.Entity("se347_be.Work.Database.Entities.QuizParticipation", b =>
                 {
-                    b.HasOne("se347_be.Work.Database.Entity.AppUser", "ParticipantUser")
-                        .WithMany("Participations")
-                        .HasForeignKey("ParticipantId");
-
                     b.HasOne("se347_be.Work.Database.Entity.Quiz", "Quiz")
                         .WithMany("Participations")
                         .HasForeignKey("QuizId");
-
-                    b.Navigation("ParticipantUser");
 
                     b.Navigation("Quiz");
                 });
@@ -300,13 +476,35 @@ namespace se347_be.Migrations
                     b.Navigation("AppUser");
                 });
 
+            modelBuilder.Entity("se347_be.Work.Database.Entity.Participant", b =>
+                {
+                    b.HasOne("se347_be.Work.Database.Entity.ParticipantList", "ParticipantList")
+                        .WithMany("Participants")
+                        .HasForeignKey("ListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ParticipantList");
+                });
+
+            modelBuilder.Entity("se347_be.Work.Database.Entity.ParticipantList", b =>
+                {
+                    b.HasOne("se347_be.Work.Database.Entity.AppUser", "CreatorUser")
+                        .WithMany()
+                        .HasForeignKey("CreatorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatorUser");
+                });
+
             modelBuilder.Entity("se347_be.Work.Database.Entity.Question", b =>
                 {
-                    b.HasOne("se347_be.Work.Database.Entity.Quiz", "Quiz")
-                        .WithMany("Questions")
-                        .HasForeignKey("QuizId");
+                    b.HasOne("se347_be.Work.Database.Entity.AppUser", "CreatorUser")
+                        .WithMany()
+                        .HasForeignKey("CreatorId");
 
-                    b.Navigation("Quiz");
+                    b.Navigation("CreatorUser");
                 });
 
             modelBuilder.Entity("se347_be.Work.Database.Entity.Quiz", b =>
@@ -316,6 +514,47 @@ namespace se347_be.Migrations
                         .HasForeignKey("CreatorId");
 
                     b.Navigation("CreatorUser");
+                });
+
+            modelBuilder.Entity("se347_be.Work.Database.Entity.QuizInvitation", b =>
+                {
+                    b.HasOne("se347_be.Work.Database.Entity.Quiz", "Quiz")
+                        .WithMany()
+                        .HasForeignKey("QuizId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Quiz");
+                });
+
+            modelBuilder.Entity("se347_be.Work.Database.Entity.QuizQuestion", b =>
+                {
+                    b.HasOne("se347_be.Work.Database.Entity.Question", "Question")
+                        .WithMany("QuizQuestions")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("se347_be.Work.Database.Entity.Quiz", "Quiz")
+                        .WithMany("QuizQuestions")
+                        .HasForeignKey("QuizId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+
+                    b.Navigation("Quiz");
+                });
+
+            modelBuilder.Entity("se347_be.Work.Database.Entity.QuizSourceDocument", b =>
+                {
+                    b.HasOne("se347_be.Work.Database.Entity.Quiz", "Quiz")
+                        .WithMany("SourceDocuments")
+                        .HasForeignKey("QuizId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Quiz");
                 });
 
             modelBuilder.Entity("se347_be.Work.Database.Entities.QuizParticipation", b =>
@@ -332,21 +571,28 @@ namespace se347_be.Migrations
                 {
                     b.Navigation("AppUserProfile");
 
-                    b.Navigation("Participations");
-
                     b.Navigation("QuizzesCreated");
+                });
+
+            modelBuilder.Entity("se347_be.Work.Database.Entity.ParticipantList", b =>
+                {
+                    b.Navigation("Participants");
                 });
 
             modelBuilder.Entity("se347_be.Work.Database.Entity.Question", b =>
                 {
                     b.Navigation("Answers");
+
+                    b.Navigation("QuizQuestions");
                 });
 
             modelBuilder.Entity("se347_be.Work.Database.Entity.Quiz", b =>
                 {
                     b.Navigation("Participations");
 
-                    b.Navigation("Questions");
+                    b.Navigation("QuizQuestions");
+
+                    b.Navigation("SourceDocuments");
                 });
 #pragma warning restore 612, 618
         }

@@ -16,9 +16,6 @@ namespace se347_be.Work.Database.Entities
         [ForeignKey("Quiz")]
         public Guid? QuizId { get; set; }
 
-        [ForeignKey("ParticipantUser")]
-        public Guid? ParticipantId { get; set; }
-
         [Column(TypeName = "varchar(100)")]
         public string? StudentId { get; set; }
 
@@ -35,8 +32,19 @@ namespace se347_be.Work.Database.Entities
         [Column(TypeName = "timestamp")]
         public DateTime? SubmitTime { get; set; }
 
+        [Column(TypeName = "varchar(255)")]
+        public string? Email { get; set; }
+
+        [Column(TypeName = "numeric")]
+        public decimal? Score { get; set; }
+
+        [Column(TypeName = "text")]
+        public string? ShuffledQuestionsJson { get; set; } // JSON array: ["qId1", "qId2", ...] - Cleared after submit
+
+        [Column(TypeName = "text")]
+        public string? ShuffledAnswersJson { get; set; } // JSON map: {"qId1": ["aId1", "aId2"], ...} - Cleared after submit
+
         // Navigation
-        public AppUser? ParticipantUser { get; set; }
         public Quiz? Quiz { get; set; }
         public ICollection<AnswerSelection>? AnswerSelections { get; set; }
     }

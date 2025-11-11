@@ -33,7 +33,14 @@ namespace se347_be.Work.Repositories.Implementations
         {
             var userProfile = await _db.UserProfiles.FirstOrDefaultAsync(pf => pf.Id == appUserProfile.Id);
 
-            userProfile = appUserProfile;
+            if(userProfile == null)
+            {
+                return null;
+            }
+
+            userProfile.FirstName = !string.IsNullOrEmpty(appUserProfile.FirstName) ? appUserProfile.FirstName : userProfile.FirstName;
+            userProfile.LastName = !string.IsNullOrEmpty(appUserProfile.LastName) ? appUserProfile.LastName : userProfile.LastName;
+            userProfile.Avatar = !string.IsNullOrEmpty(appUserProfile.Avatar) ? appUserProfile.Avatar : userProfile.Avatar;
 
             await _db.SaveChangesAsync();
 

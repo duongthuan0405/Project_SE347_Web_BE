@@ -8,7 +8,7 @@ namespace se347_be.Work.Services.Interfaces
 {
     public interface IUserProfileService
     {
-        public Task<UserProfileDTO?> UpdateProfileAsync(UserProfileDTO userProfileDTO);
-        public Task<UserProfileDTO?> GetProfileByIdAsync(string id);
+        public Task<UserProfileResponseDTO?> UpdateProfileAsync(string id, UpdateUserProfileRequestDTO updateRequest, string? avatarURL);
+        public Task<UserProfileResponseDTO?> GetProfileByIdAsync(string id);
     }
 }

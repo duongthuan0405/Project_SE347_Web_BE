@@ -28,6 +28,9 @@ public class Program
         builder.Configuration.AddEnvironmentVariables();
 
         #region Database Connection
+        // Configure Npgsql to handle DateTime without timezone issues
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+        
         // Get Connection String from appsettings.json
         var dbConfig = builder.Configuration.GetSection("DB");
         var dbId = dbConfig["ID"];
@@ -42,6 +45,17 @@ public class Program
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+        
+        // Add CORS
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
         #endregion
 
         #region JWT
@@ -65,11 +79,13 @@ public class Program
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IPendingUserRepository, PendingUserRepository>();
 
-<<<<<<< Updated upstream
-=======
         // UserProfile
         builder.Services.AddScoped<IUserProfileService, UserProfileService>();
         builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+
+        // ImageStorage
+        builder.Services.AddScoped<IImageStorage, ImageStorage>();   
+        builder.Services.AddScoped<IImageProcessor, ImageProcessor>();
 
         // Quiz Module
         builder.Services.AddScoped<IQuizRepository, QuizRepository>();
@@ -96,10 +112,11 @@ public class Program
         builder.Services.AddHttpClient<IGeminiAIService, GeminiAIService>();
         builder.Services.AddScoped<IDocumentProcessorService, DocumentProcessorService>();
 
+        // DocumentStorage
+        builder.Services.AddScoped<IDocumentStorage, DocumentStorage>();
+
         // Participant Quiz Module
         builder.Services.AddScoped<IParticipantQuizService, ParticipantQuizService>();
-
->>>>>>> Stashed changes
         builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
         builder.Services.AddScoped<IEmail, EmailService>();
         #endregion
@@ -134,8 +151,38 @@ public class Program
                 ClockSkew = TimeSpan.Zero,
 
                 NameClaimType = JwtRegisteredClaimNames.Sub,
+               
             };
         });
+
+        builder.Services.AddSwaggerGen(c =>
+        {
+            // Thêm Bearer token support
+            c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT"
+            });
+
+            c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+            {
+                {
+                    new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                    {
+                        Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                        {
+                            Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+        });
+
 
 
         var app = builder.Build();
@@ -148,13 +195,17 @@ public class Program
             app.UseSwaggerUI();
         }
 
-        using (var scope = app.Services.CreateScope())
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<MyAppDbContext>();
-            // Apply any pending migrations
-            dbContext.Database.Migrate();
-        }
-        
+        // Skip auto-migration if database already exists
+        // using (var scope = app.Services.CreateScope())
+        // {
+        //     var dbContext = scope.ServiceProvider.GetRequiredService<MyAppDbContext>();
+        //     // Apply any pending migrations
+        //     dbContext.Database.Migrate();
+        // }
+
+        app.UseStaticFiles();
+        app.UseCors("AllowAll");
+        app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
         app.Run();
