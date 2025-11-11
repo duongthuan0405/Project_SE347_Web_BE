@@ -41,6 +41,12 @@ namespace se347_be.Work.Repositories.Implementations
             }
         }
 
+        public Task<AppUser?> GetUserById(Guid id)
+        {
+            var user = _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+            return user;
+        }
+
         public async Task<AppUser?> GetUserWithGmailAndPasswordAsync(string email, string password)
         {
             AppUser? user = await _db.Users.FirstOrDefaultAsync(us => us.Email == email);

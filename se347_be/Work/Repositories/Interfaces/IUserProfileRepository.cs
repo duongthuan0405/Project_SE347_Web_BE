@@ -9,5 +9,7 @@ namespace se347_be.Work.Repositories.Interfaces
     public interface IUserProfileRepository
     {
         public Task AddNewUserProfileAsync(AppUserProfile appUserProfile);
+        public Task<AppUserProfile?> UpdateUserProfileAsync(AppUserProfile appUserProfile);
+        public Task<AppUserProfile?> GetProfileByIdAsync(Guid id);
     }
 }

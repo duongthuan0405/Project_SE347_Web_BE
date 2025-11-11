@@ -59,11 +59,47 @@ public class Program
         #region Custom Services and Repositories
         builder.Services.AddScoped<ITestEntityRepository, TestEntityRepository>();
         builder.Services.AddScoped<ITestEntityService, TestEntityService>();
+
+        // Related to Auth
         builder.Services.AddScoped<IAppAuthenticationService, AuthenticationService>();
         builder.Services.AddScoped<IUserRepository, UserRepository>();
-        builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         builder.Services.AddScoped<IPendingUserRepository, PendingUserRepository>();
 
+<<<<<<< Updated upstream
+=======
+        // UserProfile
+        builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+        builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+
+        // Quiz Module
+        builder.Services.AddScoped<IQuizRepository, QuizRepository>();
+        builder.Services.AddScoped<IQuizService, QuizService>();
+
+        // Question Bank Module (NEW Architecture)
+        builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
+        builder.Services.AddScoped<IAnswerRepository, AnswerRepository>();
+        builder.Services.AddScoped<IQuestionBankRepository, QuestionBankRepository>();
+        builder.Services.AddScoped<IQuestionBankService, QuestionBankService>();
+
+        // Invite Module
+        builder.Services.AddScoped<IInviteService, InviteService>();
+
+        // Statistics Module
+        builder.Services.AddScoped<IParticipationRepository, ParticipationRepository>();
+        builder.Services.AddScoped<IStatisticsService, StatisticsService>();
+
+        // ParticipantList Module
+        builder.Services.AddScoped<IParticipantListRepository, ParticipantListRepository>();
+        builder.Services.AddScoped<IParticipantListService, ParticipantListService>();
+
+        // AI Module
+        builder.Services.AddHttpClient<IGeminiAIService, GeminiAIService>();
+        builder.Services.AddScoped<IDocumentProcessorService, DocumentProcessorService>();
+
+        // Participant Quiz Module
+        builder.Services.AddScoped<IParticipantQuizService, ParticipantQuizService>();
+
+>>>>>>> Stashed changes
         builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
         builder.Services.AddScoped<IEmail, EmailService>();
         #endregion
