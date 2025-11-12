@@ -18,21 +18,21 @@ namespace se347_be.Work.Services.Implementations
         private readonly IQuizRepository _quizRepository;
         private readonly IParticipantListRepository _participantListRepository;
         private readonly MyAppDbContext _context;
-        private readonly EmailSettings _emailSettings;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
 
         public InviteService(
             IQuizRepository quizRepository,
             IParticipantListRepository participantListRepository,
             MyAppDbContext context,
-            IOptions<EmailSettings> emailSettings,
+            IEmailService emailService,
             IConfiguration configuration)
         {
             _quizRepository = quizRepository;
             _participantListRepository = participantListRepository;
             _context = context;
-            _emailSettings = emailSettings.Value;
             _configuration = configuration;
+            _emailService = emailService;
         }
 
         public async Task<InviteResponseDTO> SendInvitesAsync(Guid quizId, IFormFile excelFile, Guid creatorId)
@@ -75,7 +75,7 @@ namespace se347_be.Work.Services.Implementations
             {
                 try
                 {
-                    await SendInviteEmailAsync(participant, quiz.Title, quizLink, quiz.StartTime, quiz.DueTime);
+                    await _emailService.SendInviteEmailAsync(participant, quiz.Title, quizLink, quiz.StartTime, quiz.DueTime);
                     
                     // Add to whitelist for Private quizzes
                     if (quiz.AccessType == "Private")
@@ -182,61 +182,7 @@ namespace se347_be.Work.Services.Implementations
             return emailRegex.IsMatch(email);
         }
 
-        private async Task SendInviteEmailAsync(
-            ParticipantInfoDTO participant,
-            string quizTitle,
-            string quizLink,
-            DateTime? startTime,
-            DateTime? dueTime)
-        {
-            var timeInfo = "";
-            if (startTime.HasValue && dueTime.HasValue)
-            {
-                timeInfo = $"<p><strong>Thời gian:</strong> {startTime.Value:dd/MM/yyyy HH:mm} - {dueTime.Value:dd/MM/yyyy HH:mm}</p>";
-            }
-
-            var emailBody = $@"
-                <html>
-                <body>
-                    <h2>Lời mời tham gia bài thi: {quizTitle}</h2>
-                    <p>Xin chào <strong>{participant.FullName}</strong>,</p>
-                    <p>Bạn được mời tham gia bài thi trắc nghiệm trực tuyến.</p>
-                    {timeInfo}
-                    <p><strong>Link làm bài:</strong></p>
-                    <p><a href='{quizLink}' style='display:inline-block;padding:10px 20px;background-color:#007bff;color:white;text-decoration:none;border-radius:5px;'>Bắt đầu làm bài</a></p>
-                    <p>Hoặc copy link sau: <a href='{quizLink}'>{quizLink}</a></p>
-                    <br/>
-                    <p>Chúc bạn làm bài tốt!</p>
-                    <p><em>MyQuizz - Hệ thống thi trắc nghiệm trực tuyến</em></p>
-                </body>
-                </html>
-            ";
-
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress("MyQuizz", _emailSettings.Username));
-            message.To.Add(MailboxAddress.Parse(participant.Email));
-            message.Subject = $"Lời mời tham gia bài thi: {quizTitle}";
-
-            var bodyBuilder = new BodyBuilder
-            {
-                HtmlBody = emailBody
-            };
-
-            message.Body = bodyBuilder.ToMessageBody();
-
-            using var client = new SmtpClient();
-            try
-            {
-                await client.ConnectAsync(_emailSettings.Server, _emailSettings.Port, SecureSocketOptions.StartTls);
-                await client.AuthenticateAsync(_emailSettings.Username, _emailSettings.Password);
-                await client.SendAsync(message);
-                await client.DisconnectAsync(true);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to send email to {participant.Email}: {ex.Message}");
-            }
-        }
+        
 
         public async Task<InviteResponseDTO> SendInvitesFromListsAsync(Guid quizId, List<Guid> participantListIds, Guid creatorId)
         {
@@ -313,7 +259,7 @@ namespace se347_be.Work.Services.Implementations
             {
                 try
                 {
-                    await SendInviteEmailAsync(participant, quiz.Title, quizLink, quiz.StartTime, quiz.DueTime);
+                    await _emailService.SendInviteEmailAsync(participant, quiz.Title, quizLink, quiz.StartTime, quiz.DueTime);
                     
                     // Add to whitelist for Private quizzes
                     if (quiz.AccessType == "Private")

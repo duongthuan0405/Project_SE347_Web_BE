@@ -58,7 +58,7 @@ namespace se347_be.Work.Services.Implementations
                 if (avatar != null)
                 {
                     avatarURL = await _imageStorage.SaveAsync(avatar, "avatars");
-                    _imageStorage.DeleteAsync(currentUser.Avatar ?? "");
+                    _imageStorage.Delete(currentUser.Avatar ?? "");
                 }
 
                 AppUserProfile appUserProfile = new AppUserProfile()

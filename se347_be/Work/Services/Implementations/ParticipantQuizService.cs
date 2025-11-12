@@ -11,9 +11,9 @@ namespace se347_be.Work.Services.Implementations
     public class ParticipantQuizService : IParticipantQuizService
     {
         private readonly MyAppDbContext _context;
-        private readonly IEmail _emailService;
+        private readonly IEmailService _emailService;
 
-        public ParticipantQuizService(MyAppDbContext context, IEmail emailService)
+        public ParticipantQuizService(MyAppDbContext context, IEmailService emailService)
         {
             _context = context;
             _emailService = emailService;

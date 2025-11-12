@@ -123,11 +123,8 @@ public class Program
         builder.Services.AddScoped<IParticipantQuizService, ParticipantQuizService>();
         
         // Email Settings
-        builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
-        builder.Services.AddScoped<IEmail, EmailService>();
+        builder.Services.AddScoped<IEmailService, EmailService>();
 
-        // File Settings
-        builder.Services.Configure<FileSettings>(builder.Configuration.GetSection("FileSettings"));
 
         // Helper
         builder.Services.AddScoped<IURLHelper, URLHelper>();
@@ -215,22 +212,24 @@ public class Program
         //     dbContext.Database.Migrate();
         // }
 
-        var fileSettings = builder.Configuration.GetSection("FileSettings").Get<FileSettings>() ?? new FileSettings();
+        var fileSettings = builder.Configuration.GetSection("FileSettings");
+        var storagePath = fileSettings["StoragePath"] ?? "wwwroot/uploads_df";
+        var requestPath = fileSettings["RequestPath"] ?? "/uploads_df";
 
-        if (!Path.IsPathRooted(fileSettings.StoragePath))
+        if (!Path.IsPathRooted(storagePath))
         {
-            fileSettings.StoragePath = Path.Combine(builder.Environment.ContentRootPath, fileSettings.StoragePath);
+            storagePath = Path.Combine(builder.Environment.ContentRootPath, storagePath);
         }
 
-        if (!Directory.Exists(fileSettings.StoragePath))
+        if (!Directory.Exists(storagePath))
         {
-            Directory.CreateDirectory(fileSettings.StoragePath);
+            Directory.CreateDirectory(storagePath);
         }
 
         app.UseStaticFiles(new StaticFileOptions
         {
-            FileProvider = new PhysicalFileProvider(fileSettings.StoragePath),
-            RequestPath = fileSettings.RequestPath,
+            FileProvider = new PhysicalFileProvider(storagePath),
+            RequestPath = requestPath,
         });
 
         app.UseCors("AllowAll");
@@ -240,7 +239,7 @@ public class Program
 
         lock (Console.Out)
         {
-            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.BackgroundColor = ConsoleColor.Red;
             Console.WriteLine(builder.Environment.IsDevelopment() ? "DEVELOPMENT" : "PRODUCTION");
             Console.ResetColor();
         }
@@ -255,14 +254,15 @@ public class Program
         lock (Console.Out)
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("Storage: " + fileSettings.StoragePath);
+            Console.WriteLine("Storage: " + storagePath);
             Console.ResetColor();
         }
 
         lock (Console.Out)
         {
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.WriteLine("URL Request Documents: " + fileSettings.RequestPath);
+            var appBareUrl = builder.Configuration["AppSettings__BaseUrl"] ?? "http://localhost:5007";
+            Console.WriteLine("URL Request Documents: " + new Uri(new Uri(appBareUrl), requestPath));
             Console.ResetColor();
         }
         app.Run();

@@ -17,8 +17,8 @@ namespace se347_be.Work.Services.Implementations
         IUserRepository _userRepo;
         IUserProfileRepository _profileRepo;
         IPendingUserRepository _pendingUserRepo;
-        IEmail _email;
-        public AuthenticationService(IUserRepository userRepository, IUserProfileRepository profileRepository, IEmail email, IPendingUserRepository pendingUserRepo)
+        IEmailService _email;
+        public AuthenticationService(IUserRepository userRepository, IUserProfileRepository profileRepository, IEmailService email, IPendingUserRepository pendingUserRepo)
         {
             _userRepo = userRepository;
             _profileRepo = profileRepository;

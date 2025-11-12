@@ -94,7 +94,7 @@ namespace se347_be.Work.Controllers
                     Id = Guid.NewGuid(),
                     QuizId = quizId,
                     FileName = file.FileName,
-                    StorageUrl = _uRLFileHelper.GetLiveURL(filePath),
+                    StorageUrl = filePath,
                     Status = "Uploaded",
                     UploadAt = DateTime.UtcNow
                 };
@@ -107,7 +107,7 @@ namespace se347_be.Work.Controllers
                     Id = document.Id,
                     QuizId = document.QuizId,
                     FileName = document.FileName,
-                    StorageUrl = document.StorageUrl,
+                    StorageUrl = _uRLFileHelper.GetLiveURL(document.StorageUrl),
                     Status = document.Status,
                     UploadAt = document.UploadAt
                 });
@@ -200,7 +200,7 @@ namespace se347_be.Work.Controllers
                 }
 
                 // Delete file from disk
-                bool isSuccess = _documentStorage.DeleteAsync(document.StorageUrl);
+                bool isSuccess = _documentStorage.Delete(document.StorageUrl);
                 if (!isSuccess)
                 {
                     return NotFound("File not found to delete");

@@ -6,11 +6,11 @@ namespace se347_be.Work.URLFileHelper
     public class URLHelper : IURLHelper
     {
         private readonly string _baseURL = "";
-        public URLHelper(IOptions<FileSettings> fileSettings, IConfiguration config)
+        public URLHelper(IConfiguration config)
         {
-            _baseURL = config["AppSettings:BaseURL"] ?? "http://localhost:5007";
+            _baseURL = config["AppSettings:BareUrl"] ?? "http://localhost:5007";
 
-            var requestPath = fileSettings.Value.RequestPath;
+            var requestPath = config["FileSettings:RequestPath"] ?? "uploads_df";
             _baseURL = new Uri(new Uri(_baseURL), requestPath + "/").ToString();
             
         }
@@ -18,8 +18,7 @@ namespace se347_be.Work.URLFileHelper
         public string GetLiveURL(string relativeURL)
         {
 
-            string url = new Uri(new Uri(_baseURL), relativeURL.Replace("\\", "/")).ToString();
-
+            string url = new Uri(new Uri(_baseURL), relativeURL).ToString();
             return url;
         }
 

@@ -11,22 +11,27 @@ namespace se347_be.Work.Storage.Implementations
         private readonly string _subFolderByType = "images";
         private readonly ILogger<DocumentStorage> _logger;
 
-        public ImageStorage(ILogger<DocumentStorage> logger, IOptions<FileSettings> fileSettings, IWebHostEnvironment env)
+        public ImageStorage(ILogger<DocumentStorage> logger, IConfiguration config, IWebHostEnvironment env)
         {
+            var fileSettings = config.GetSection("FileSettings");
+            var storagePath = fileSettings?["StoragePath"] ?? "wwwroot/uploads_df";
 
-            if (!Path.IsPathRooted(fileSettings.Value.StoragePath))
+            if (!Path.IsPathRooted(storagePath))
             {
-                _storagePath = Path.Combine(env.ContentRootPath, fileSettings.Value.StoragePath);
+                _storagePath = Path.Combine(env.ContentRootPath, storagePath);
             }
             else
             {
-                _storagePath = Path.Combine(fileSettings.Value.StoragePath);
+                _storagePath = storagePath;
             }
 
             _logger = logger;
 
             if (!Directory.Exists(_storagePath))
+            {
                 Directory.CreateDirectory(_storagePath);
+                Console.WriteLine("Create directory: " + _storagePath);
+            }
         }
 
         public async Task<string> SaveAsync(IFormFile file, string subFolder, string name)
@@ -57,7 +62,7 @@ namespace se347_be.Work.Storage.Implementations
             return Path.Combine(_subFolderByType, subFolder, uniqueFileName);
         }
 
-        public bool DeleteAsync(string urlToFile)
+        public bool Delete(string urlToFile)
         {
             if (!Path.IsPathRooted(urlToFile))
             {
