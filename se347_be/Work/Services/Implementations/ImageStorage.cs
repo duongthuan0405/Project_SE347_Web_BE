@@ -1,18 +1,27 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using se347_be.Work.Services.Interfaces;
+using se347_be.Work.Storage;
 
 namespace se347_be.Work.Services.Implementations
 {
     public class ImageStorage : IImageStorage
     {
-        private readonly string _storagePath;  
-        private readonly ILogger<ImageStorage> _logger;
-        public ImageStorage(IConfiguration configuration, ILogger<ImageStorage> logger)
-        {
-            var path = configuration["FileUpload:Path"] ?? Path.Combine("wwwroot", "uploads");
-            Console.WriteLine(Directory.GetCurrentDirectory());
-            _storagePath = Path.Combine(Directory.GetCurrentDirectory(), path, "avatars");
+        private readonly string _storagePath;
+        private readonly string _subFolderByType = "images";
+        private readonly ILogger<DocumentStorage> _logger;
 
+        public ImageStorage(ILogger<DocumentStorage> logger, IOptions<FileSettings> fileSettings, IWebHostEnvironment env)
+        {
+
+            if (!Path.IsPathRooted(fileSettings.Value.StoragePath))
+            {
+                _storagePath = Path.Combine(env.ContentRootPath, fileSettings.Value.StoragePath);
+            }
+            else
+            {
+                _storagePath = Path.Combine(fileSettings.Value.StoragePath);
+            }
 
             _logger = logger;
 
@@ -26,11 +35,9 @@ namespace se347_be.Work.Services.Implementations
                 throw new ArgumentException("File is null or empty");
 
             // Thư mục con
-            var folderPath = string.IsNullOrWhiteSpace(subFolder)
-                ? _storagePath
-                : Path.Combine(_storagePath, subFolder);
+            var folderPath = Path.Combine(_storagePath, _subFolderByType, subFolder);
 
-            if (Directory.Exists(folderPath))
+            if (!Directory.Exists(folderPath))
                 Directory.CreateDirectory(folderPath);
 
             // Tạo tên file duy nhất
@@ -47,12 +54,22 @@ namespace se347_be.Work.Services.Implementations
 
             _logger.LogInformation("Image saved: {FilePath}", filePath);
 
-            return filePath;
+            return Path.Combine(_subFolderByType, subFolder, uniqueFileName);
         }
 
-        Task<bool> IFileStorage.DeleteAsync(string urlToFile)
+        public bool DeleteAsync(string urlToFile)
         {
-            throw new NotImplementedException();
+            if (!Path.IsPathRooted(urlToFile))
+            {
+                urlToFile = Path.Combine(_storagePath, urlToFile);
+            }
+
+            if (System.IO.File.Exists(urlToFile))
+            {
+                System.IO.File.Delete(urlToFile);
+                return true;
+            }
+            return false;
         }
     }
 }

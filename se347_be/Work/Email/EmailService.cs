@@ -5,8 +5,7 @@ using MailKit.Net.Smtp;
 using MimeKit;
 using MailKit.Security;
 
-
-namespace se347_be.Email
+namespace se347_be.Work.Email
 {
     public class EmailService : IEmail
     {

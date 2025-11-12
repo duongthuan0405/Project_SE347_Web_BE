@@ -1,4 +1,4 @@
-namespace se347_be.Email
+namespace se347_be.Work.Email
 {
     public interface IEmail
     {

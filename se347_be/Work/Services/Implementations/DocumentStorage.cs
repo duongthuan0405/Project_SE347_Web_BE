@@ -1,18 +1,27 @@
-﻿using se347_be.Work.Controllers;
+﻿using Microsoft.Extensions.Options;
+using se347_be.Work.Controllers;
 using se347_be.Work.Services.Interfaces;
+using se347_be.Work.Storage;
+using Sprache;
 
 namespace se347_be.Work.Services.Implementations
 {
     public class DocumentStorage : IDocumentStorage
     {
         private readonly string _storagePath;
+        private readonly string _subFolderByType = "documents";
         private readonly ILogger<DocumentStorage> _logger;
 
-        public DocumentStorage(ILogger<DocumentStorage> logger, IConfiguration configuration) 
+        public DocumentStorage(ILogger<DocumentStorage> logger, IOptions<FileSettings> fileSettings, IWebHostEnvironment env) 
         {
-            var path = configuration["FileUpload:Path"]/* ?? Path.Combine("wwwroot", "uploads")*/;
-            Console.WriteLine(Directory.GetCurrentDirectory());
-            _storagePath = Path.Combine(Directory.GetCurrentDirectory(), path, "documents");
+
+            if (!Path.IsPathRooted(fileSettings.Value.StoragePath)) {
+                _storagePath = Path.Combine(env.ContentRootPath, fileSettings.Value.StoragePath);
+            }
+            else
+            {
+                _storagePath = Path.Combine(fileSettings.Value.StoragePath);
+            }
 
             _logger = logger;
 
@@ -20,11 +29,23 @@ namespace se347_be.Work.Services.Implementations
                 Directory.CreateDirectory(_storagePath);
         }
 
-        public async Task<bool> DeleteAsync(string urlToFile)
+        public bool DeleteAsync(string urlToFile)
         {
+            if(!Path.IsPathRooted(urlToFile))
+            {
+                urlToFile = Path.Combine(_storagePath, urlToFile);
+            }
+
+            lock (Console.Out)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Delete document: " + urlToFile);
+                Console.ResetColor();
+            }
+
+
             if (System.IO.File.Exists(urlToFile))
             {
-                Console.WriteLine("Có file");
                 System.IO.File.Delete(urlToFile);
                 return true;
             }
@@ -35,11 +56,9 @@ namespace se347_be.Work.Services.Implementations
         {
             try
             {
-                var folderPath = string.IsNullOrWhiteSpace(subFolder)
-                ? _storagePath
-                : Path.Combine(_storagePath, subFolder);
+                var folderPath = Path.Combine(_storagePath, _subFolderByType, subFolder);
 
-                if (Directory.Exists(folderPath))
+                if (!Directory.Exists(folderPath))
                     Directory.CreateDirectory(folderPath);
 
                 // Generate unique filename
@@ -54,7 +73,7 @@ namespace se347_be.Work.Services.Implementations
                 }
 
                 _logger.LogInformation("File uploaded: {FilePath}", filePath);
-                return "http://localhost:5007/uploads/documents/" + uniqueFileName;
+                return Path.Combine(_subFolderByType, subFolder, uniqueFileName);
             }
             catch (Exception ex)
             {

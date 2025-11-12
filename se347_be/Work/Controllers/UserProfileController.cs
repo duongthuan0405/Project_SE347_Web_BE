@@ -16,11 +16,9 @@ namespace se347_be.Work.Controllers
     public class UserProfileController : ControllerBase
     {
         IUserProfileService _userProfileService;
-        IImageStorage _imageStorage;
-        public UserProfileController(IUserProfileService userProfileService, IImageStorage imageStorage)
+        public UserProfileController(IUserProfileService userProfileService)
         {
             _userProfileService = userProfileService;
-            _imageStorage = imageStorage;
         }
 
         private string GetCurrentUserId()
@@ -45,12 +43,11 @@ namespace se347_be.Work.Controllers
 
             try
             {
-                string imageURL = "";
-                if (updateDto.ImageFile != null)
-                {
-                    imageURL = await _imageStorage.SaveAsync(updateDto.ImageFile, name: userId);
+                var result = await _userProfileService.UpdateProfileAsync(userId, updateDto, updateDto.ImageFile);
+                if (result == null) 
+                { 
+                    return StatusCode(StatusCodes.Status404NotFound, new { Message = "User not found!" });
                 }
-                var result = await _userProfileService.UpdateProfileAsync(userId, updateDto, imageURL);
                 return Ok(result);
             }
             catch (Exception ex)

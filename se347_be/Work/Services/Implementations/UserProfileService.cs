@@ -12,10 +12,12 @@ namespace se347_be.Work.Services.Implementations
     public class UserProfileService : IUserProfileService
     {
         private readonly IUserProfileRepository _userProfileRepo;
+        private readonly IImageStorage _imageStorage;
     
-        public UserProfileService(IUserProfileRepository userProfileRepository)
+        public UserProfileService(IUserProfileRepository userProfileRepository, IImageStorage imageStorage)
         {
             _userProfileRepo = userProfileRepository;
+            _imageStorage = imageStorage;
         }
 
         public async Task<UserProfileResponseDTO?> GetProfileByIdAsync(string id)
@@ -38,24 +40,42 @@ namespace se347_be.Work.Services.Implementations
             return userProfileDTO;
         }
 
-        public async Task<UserProfileResponseDTO?> UpdateProfileAsync(string id, UpdateUserProfileRequestDTO updateRequest, string? avatarURL)
+        public async Task<UserProfileResponseDTO?> UpdateProfileAsync(string id, UpdateUserProfileRequestDTO updateRequest, IFormFile? avatar)
         {
-            AppUserProfile appUserProfile = new AppUserProfile()
+            try
             {
-                Id = Guid.Parse(id),
-                FirstName = updateRequest.FirstName ?? "",
-                LastName = updateRequest.LastName ?? "",
-                Avatar = avatarURL ?? ""
-            };
+                string avatarURL = "";
+                var currentUser = await _userProfileRepo.GetProfileByIdAsync(Guid.Parse(id));
+                if (currentUser == null)
+                {
+                    return null;
+                }
 
-            var result = await _userProfileRepo.UpdateUserProfileAsync(appUserProfile);
-            return new UserProfileResponseDTO()
-            {
-                Id = result?.Id.ToString() ?? "",
-                FirstName = result?.FirstName,
-                LastName = result?.LastName,
-                Avatar = result?.Avatar
-            };
+                if (avatar != null)
+                {
+                    avatarURL = await _imageStorage.SaveAsync(avatar, "avatars");
+                    _imageStorage.DeleteAsync(currentUser.Avatar ?? "");
+                }
+
+                AppUserProfile appUserProfile = new AppUserProfile()
+                {
+                    Id = Guid.Parse(id),
+                    FirstName = updateRequest.FirstName ?? "",
+                    LastName = updateRequest.LastName ?? "",
+                    Avatar = avatarURL ?? ""
+                };
+
+                var result = await _userProfileRepo.UpdateUserProfileAsync(appUserProfile);
+                return new UserProfileResponseDTO()
+                {
+                    Id = result?.Id.ToString() ?? "",
+                    FirstName = result?.FirstName,
+                    LastName = result?.LastName,
+                    Avatar = result?.Avatar
+                };
+            } catch (Exception) {
+                throw;
+            }
         }
     }
 }

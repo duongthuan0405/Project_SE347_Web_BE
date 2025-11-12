@@ -1,17 +1,19 @@
 
-using System.IdentityModel.Tokens.Jwt;
-using System.Text;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using se347_be.Database;
-using se347_be.Email;
+using se347_be.Work.Email;
 using se347_be.Work.JWT;
 using se347_be.Work.Repositories.Implementations;
 using se347_be.Work.Repositories.Interfaces;
 using se347_be.Work.Services.Implementations;
 using se347_be.Work.Services.Interfaces;
+using se347_be.Work.Storage;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 
 namespace se347_be;
 
@@ -39,7 +41,6 @@ public class Program
         var dbPort = dbConfig["PORT"];
         var dbDatabase = dbConfig["NAME"];
         var connectionString = $"User Id={dbId};Password={dbPassword};Server={dbServer};Port={dbPort};Database={dbDatabase}";
-        Console.WriteLine(connectionString);
         // Apply DbContext with PostgreSQL
         builder.Services.AddDbContext<MyAppDbContext>(options => options.UseNpgsql(connectionString));
         builder.Services.AddControllers();
@@ -117,8 +118,13 @@ public class Program
 
         // Participant Quiz Module
         builder.Services.AddScoped<IParticipantQuizService, ParticipantQuizService>();
+        
+        // Email Settings
         builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
         builder.Services.AddScoped<IEmail, EmailService>();
+
+        // File Settings
+        builder.Services.Configure<FileSettings>(builder.Configuration.GetSection("FileSettings"));
         #endregion
 
         // Add services to the container.
@@ -203,11 +209,56 @@ public class Program
         //     dbContext.Database.Migrate();
         // }
 
-        app.UseStaticFiles();
+        var fileSettings = builder.Configuration.GetSection("FileSettings").Get<FileSettings>() ?? new FileSettings();
+
+        if (!Path.IsPathRooted(fileSettings.StoragePath))
+        {
+            fileSettings.StoragePath = Path.Combine(builder.Environment.ContentRootPath, fileSettings.StoragePath);
+        }
+
+        if (!Directory.Exists(fileSettings.StoragePath))
+        {
+            Directory.CreateDirectory(fileSettings.StoragePath);
+        }
+
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(fileSettings.StoragePath),
+            RequestPath = fileSettings.RequestPath,
+        });
+
         app.UseCors("AllowAll");
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+
+        lock (Console.Out)
+        {
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.WriteLine(builder.Environment.IsDevelopment() ? "DEVELOPMENT" : "PRODUCTION");
+            Console.ResetColor();
+        }
+
+        lock (Console.Out)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("Database: " + connectionString);
+            Console.ResetColor();
+        }
+
+        lock (Console.Out)
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine("Storage: " + fileSettings.StoragePath);
+            Console.ResetColor();
+        }
+
+        lock (Console.Out)
+        {
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.WriteLine("URL Request Documents: " + fileSettings.RequestPath);
+            Console.ResetColor();
+        }
         app.Run();
     }
 }

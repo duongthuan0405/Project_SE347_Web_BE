@@ -4,7 +4,7 @@ using se347_be.Work.Database.Entity;
 using se347_be.Work.Database.Entities;
 using se347_be.Work.DTOs.Participant;
 using se347_be.Work.Services.Interfaces;
-using se347_be.Email;
+using se347_be.Work.Email;
 
 namespace se347_be.Work.Services.Implementations
 {

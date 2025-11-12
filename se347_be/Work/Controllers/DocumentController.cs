@@ -196,7 +196,7 @@ namespace se347_be.Work.Controllers
                 }
 
                 // Delete file from disk
-                bool isSuccess = await _documentStorage.DeleteAsync(document.StorageUrl);
+                bool isSuccess = _documentStorage.DeleteAsync(document.StorageUrl);
                 if (!isSuccess)
                 {
                     return NotFound("File not found to delete");

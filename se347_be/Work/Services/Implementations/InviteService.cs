@@ -5,9 +5,9 @@ using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using se347_be.Database;
-using se347_be.Email;
 using se347_be.Work.Database.Entity;
 using se347_be.Work.DTOs.Invite;
+using se347_be.Work.Email;
 using se347_be.Work.Repositories.Interfaces;
 using se347_be.Work.Services.Interfaces;
 
