@@ -43,12 +43,46 @@ namespace se347_be.Work.Database.Entity
         [DefaultValue(false)]
         public bool IsShuffleQuestions { get; set; } = false;
 
+        public int? DurationInMinutes { get; set; }
+
+        [Column(TypeName = "varchar(50)")]
+        public string? AccessCode { get; set; }
+
+        [Required, Column(TypeName = "varchar(20)")]
+        [DefaultValue("Public")]
+        public string AccessType { get; set; } = "Public"; // "Public", "Private"
+
+        [DefaultValue(false)]
+        public bool ShowScoreAfterSubmission { get; set; } = false;
+
+        [DefaultValue(false)]
+        public bool SendResultEmail { get; set; } = false;
+
+        [Required, Column(TypeName = "varchar(20)")]
+        [DefaultValue("Never")]
+        public string ShowCorrectAnswersMode { get; set; } = "Never"; // "Never", "Immediately", "AfterDueTime"
+
+        [DefaultValue(true)]
+        public bool AllowNavigationBack { get; set; } = true; // Allow "Previous" button in OneByOne mode
+
+        [Required, Column(TypeName = "varchar(20)")]
+        [DefaultValue("AllAtOnce")]
+        public string PresentationMode { get; set; } = "AllAtOnce"; // "AllAtOnce", "OneByOne"
+
+        [Required, Column(TypeName = "varchar(20)")]
+        [DefaultValue("Standard")]
+        public string ScoringMode { get; set; } = "Standard"; // "Standard", "Flexible"
+
+        [DefaultValue(false)]
+        public bool QuestionsSavedToBank { get; set; } = false; // Track if AI-generated questions saved to bank
+
         [ForeignKey("CreatorUser")]
         public Guid? CreatorId { get; set; }
 
         // Navigation
         public AppUser? CreatorUser { get; set; }
-        public List<Question>? Questions { get; set; }
+        public List<QuizQuestion>? QuizQuestions { get; set; } // Many-to-many with Question
         public List<QuizParticipation>? Participations { get; set; }
+        public List<QuizSourceDocument>? SourceDocuments { get; set; }
     }
 }

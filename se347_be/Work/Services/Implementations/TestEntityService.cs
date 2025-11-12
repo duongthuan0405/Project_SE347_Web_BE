@@ -19,7 +19,7 @@ namespace se347_be.Work.Services.Implementations
 
         public async Task<string> AddNewEntity(TestEntityDTO testEntityDTO)
         {
-            TestEntity newEntity = new TestEntity(testEntityDTO.Name);
+            TestEntity newEntity = new TestEntity(testEntityDTO.Name ?? "");
             return await _testEntityRepository.AddNewEntityAsync(newEntity);
         }
 

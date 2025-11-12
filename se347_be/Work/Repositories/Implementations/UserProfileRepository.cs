@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using se347_be.Database;
 using se347_be.Work.Database.Entity;
 using se347_be.Work.Repositories.Interfaces;
@@ -20,6 +21,32 @@ namespace se347_be.Work.Repositories.Implementations
             await _db.UserProfiles.AddAsync(appUserProfile);
             Console.WriteLine(appUserProfile.FirstName);
             await _db.SaveChangesAsync();
+        }
+
+        public async Task<AppUserProfile?> GetProfileByIdAsync(Guid id)
+        {
+            return await _db.UserProfiles.FirstOrDefaultAsync(pf => pf.Id == id);
+            throw new NotImplementedException();
+        }
+
+        public async Task<AppUserProfile?> UpdateUserProfileAsync(AppUserProfile appUserProfile)
+        {
+            var userProfile = await _db.UserProfiles.FirstOrDefaultAsync(pf => pf.Id == appUserProfile.Id);
+
+            if(userProfile == null)
+            {
+                return null;
+            }
+
+            userProfile.FirstName = !string.IsNullOrEmpty(appUserProfile.FirstName) ? appUserProfile.FirstName : userProfile.FirstName;
+            userProfile.LastName = !string.IsNullOrEmpty(appUserProfile.LastName) ? appUserProfile.LastName : userProfile.LastName;
+            userProfile.Avatar = !string.IsNullOrEmpty(appUserProfile.Avatar) ? appUserProfile.Avatar : userProfile.Avatar;
+
+            await _db.SaveChangesAsync();
+
+            return userProfile;
+            throw new NotImplementedException();
+
         }
     }
 }

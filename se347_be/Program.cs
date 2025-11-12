@@ -1,17 +1,22 @@
 
-using System.IdentityModel.Tokens.Jwt;
-using System.Text;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using se347_be.Database;
-using se347_be.Email;
+using se347_be.Work.Email;
 using se347_be.Work.JWT;
 using se347_be.Work.Repositories.Implementations;
 using se347_be.Work.Repositories.Interfaces;
 using se347_be.Work.Services.Implementations;
 using se347_be.Work.Services.Interfaces;
+using se347_be.Work.Storage;
+using se347_be.Work.Storage.Implementations;
+using se347_be.Work.Storage.Interfaces;
+using se347_be.Work.URLFileHelper;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 
 namespace se347_be;
 
@@ -28,6 +33,9 @@ public class Program
         builder.Configuration.AddEnvironmentVariables();
 
         #region Database Connection
+        // Configure Npgsql to handle DateTime without timezone issues
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+        
         // Get Connection String from appsettings.json
         var dbConfig = builder.Configuration.GetSection("DB");
         var dbId = dbConfig["ID"];
@@ -36,12 +44,22 @@ public class Program
         var dbPort = dbConfig["PORT"];
         var dbDatabase = dbConfig["NAME"];
         var connectionString = $"User Id={dbId};Password={dbPassword};Server={dbServer};Port={dbPort};Database={dbDatabase}";
-        Console.WriteLine(connectionString);
         // Apply DbContext with PostgreSQL
         builder.Services.AddDbContext<MyAppDbContext>(options => options.UseNpgsql(connectionString));
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+        
+        // Add CORS
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
         #endregion
 
         #region JWT
@@ -59,13 +77,57 @@ public class Program
         #region Custom Services and Repositories
         builder.Services.AddScoped<ITestEntityRepository, TestEntityRepository>();
         builder.Services.AddScoped<ITestEntityService, TestEntityService>();
+
+        // Related to Auth
         builder.Services.AddScoped<IAppAuthenticationService, AuthenticationService>();
         builder.Services.AddScoped<IUserRepository, UserRepository>();
-        builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         builder.Services.AddScoped<IPendingUserRepository, PendingUserRepository>();
 
-        builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
-        builder.Services.AddScoped<IEmail, EmailService>();
+        // UserProfile
+        builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+        builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+
+        // ImageStorage
+        builder.Services.AddScoped<IImageStorage, ImageStorage>();   
+        builder.Services.AddScoped<IImageProcessor, ImageProcessor>();
+
+        // Quiz Module
+        builder.Services.AddScoped<IQuizRepository, QuizRepository>();
+        builder.Services.AddScoped<IQuizService, QuizService>();
+
+        // Question Bank Module (NEW Architecture)
+        builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
+        builder.Services.AddScoped<IAnswerRepository, AnswerRepository>();
+        builder.Services.AddScoped<IQuestionBankRepository, QuestionBankRepository>();
+        builder.Services.AddScoped<IQuestionBankService, QuestionBankService>();
+
+        // Invite Module
+        builder.Services.AddScoped<IInviteService, InviteService>();
+
+        // Statistics Module
+        builder.Services.AddScoped<IParticipationRepository, ParticipationRepository>();
+        builder.Services.AddScoped<IStatisticsService, StatisticsService>();
+
+        // ParticipantList Module
+        builder.Services.AddScoped<IParticipantListRepository, ParticipantListRepository>();
+        builder.Services.AddScoped<IParticipantListService, ParticipantListService>();
+
+        // AI Module
+        builder.Services.AddHttpClient<IGeminiAIService, GeminiAIService>();
+        builder.Services.AddScoped<IDocumentProcessorService, DocumentProcessorService>();
+
+        // DocumentStorage
+        builder.Services.AddScoped<IDocumentStorage, DocumentStorage>();
+
+        // Participant Quiz Module
+        builder.Services.AddScoped<IParticipantQuizService, ParticipantQuizService>();
+        
+        // Email Settings
+        builder.Services.AddScoped<IEmailService, EmailService>();
+
+
+        // Helper
+        builder.Services.AddScoped<IURLHelper, URLHelper>();
         #endregion
 
         // Add services to the container.
@@ -98,8 +160,38 @@ public class Program
                 ClockSkew = TimeSpan.Zero,
 
                 NameClaimType = JwtRegisteredClaimNames.Sub,
+               
             };
         });
+
+        builder.Services.AddSwaggerGen(c =>
+        {
+            // Thêm Bearer token support
+            c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT"
+            });
+
+            c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+            {
+                {
+                    new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                    {
+                        Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                        {
+                            Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+        });
+
 
 
         var app = builder.Build();
@@ -112,15 +204,67 @@ public class Program
             app.UseSwaggerUI();
         }
 
-        using (var scope = app.Services.CreateScope())
+        // Skip auto-migration if database already exists
+        // using (var scope = app.Services.CreateScope())
+        // {
+        //     var dbContext = scope.ServiceProvider.GetRequiredService<MyAppDbContext>();
+        //     // Apply any pending migrations
+        //     dbContext.Database.Migrate();
+        // }
+
+        var fileSettings = builder.Configuration.GetSection("FileSettings");
+        var storagePath = fileSettings["StoragePath"] ?? "wwwroot/uploads_df";
+        var requestPath = fileSettings["RequestPath"] ?? "/uploads_df";
+
+        if (!Path.IsPathRooted(storagePath))
         {
-            var dbContext = scope.ServiceProvider.GetRequiredService<MyAppDbContext>();
-            // Apply any pending migrations
-            dbContext.Database.Migrate();
+            storagePath = Path.Combine(builder.Environment.ContentRootPath, storagePath);
         }
-        
+
+        if (!Directory.Exists(storagePath))
+        {
+            Directory.CreateDirectory(storagePath);
+        }
+
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(storagePath),
+            RequestPath = requestPath,
+        });
+
+        app.UseCors("AllowAll");
+        app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+
+        lock (Console.Out)
+        {
+            Console.BackgroundColor = ConsoleColor.Red;
+            Console.WriteLine(builder.Environment.IsDevelopment() ? "DEVELOPMENT" : "PRODUCTION");
+            Console.ResetColor();
+        }
+
+        lock (Console.Out)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("Database: " + connectionString);
+            Console.ResetColor();
+        }
+
+        lock (Console.Out)
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine("Storage: " + storagePath);
+            Console.ResetColor();
+        }
+
+        lock (Console.Out)
+        {
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            var appBareUrl = builder.Configuration["AppSettings__BaseUrl"] ?? "http://localhost:5007";
+            Console.WriteLine("URL Request Documents: " + new Uri(new Uri(appBareUrl), requestPath));
+            Console.ResetColor();
+        }
         app.Run();
     }
 }

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.HttpResults;
-using se347_be.Email;
 using se347_be.Work.Database.Entity;
 using se347_be.Work.DTOs;
+using se347_be.Work.Email;
 using se347_be.Work.PasswordHelper;
 using se347_be.Work.Repositories.Interfaces;
 using se347_be.Work.Services.Interfaces;
@@ -17,8 +17,8 @@ namespace se347_be.Work.Services.Implementations
         IUserRepository _userRepo;
         IUserProfileRepository _profileRepo;
         IPendingUserRepository _pendingUserRepo;
-        IEmail _email;
-        public AuthenticationService(IUserRepository userRepository, IUserProfileRepository profileRepository, IEmail email, IPendingUserRepository pendingUserRepo)
+        IEmailService _email;
+        public AuthenticationService(IUserRepository userRepository, IUserProfileRepository profileRepository, IEmailService email, IPendingUserRepository pendingUserRepo)
         {
             _userRepo = userRepository;
             _profileRepo = profileRepository;
