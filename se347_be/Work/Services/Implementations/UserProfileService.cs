@@ -7,6 +7,7 @@ using se347_be.Work.DTOs.UserProfile;
 using se347_be.Work.Repositories.Interfaces;
 using se347_be.Work.Services.Interfaces;
 using se347_be.Work.Storage.Interfaces;
+using se347_be.Work.URLFileHelper;
 
 namespace se347_be.Work.Services.Implementations
 {
@@ -14,11 +15,13 @@ namespace se347_be.Work.Services.Implementations
     {
         private readonly IUserProfileRepository _userProfileRepo;
         private readonly IImageStorage _imageStorage;
+        private readonly IURLHelper _urlFileHelper;
     
-        public UserProfileService(IUserProfileRepository userProfileRepository, IImageStorage imageStorage)
+        public UserProfileService(IUserProfileRepository userProfileRepository, IImageStorage imageStorage, IURLHelper uRLFileHelper)
         {
             _userProfileRepo = userProfileRepository;
             _imageStorage = imageStorage;
+            _urlFileHelper = uRLFileHelper;            
         }
 
         public async Task<UserProfileResponseDTO?> GetProfileByIdAsync(string id)
@@ -35,7 +38,7 @@ namespace se347_be.Work.Services.Implementations
                 Id = appUserProfile.Id.ToString(),
                 FirstName = appUserProfile.FirstName,
                 LastName = appUserProfile.LastName,
-                Avatar = appUserProfile.Avatar,
+                Avatar =_urlFileHelper.GetLiveURL(appUserProfile.Avatar ?? "") 
             };
 
             return userProfileDTO;
@@ -72,7 +75,7 @@ namespace se347_be.Work.Services.Implementations
                     Id = result?.Id.ToString() ?? "",
                     FirstName = result?.FirstName,
                     LastName = result?.LastName,
-                    Avatar = result?.Avatar
+                    Avatar = _urlFileHelper.GetLiveURL(result?.Avatar ?? "")
                 };
             } catch (Exception) {
                 throw;

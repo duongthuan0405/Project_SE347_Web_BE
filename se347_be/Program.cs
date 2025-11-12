@@ -14,6 +14,7 @@ using se347_be.Work.Services.Interfaces;
 using se347_be.Work.Storage;
 using se347_be.Work.Storage.Implementations;
 using se347_be.Work.Storage.Interfaces;
+using se347_be.Work.URLFileHelper;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 
@@ -127,6 +128,9 @@ public class Program
 
         // File Settings
         builder.Services.Configure<FileSettings>(builder.Configuration.GetSection("FileSettings"));
+
+        // Helper
+        builder.Services.AddScoped<IURLHelper, URLHelper>();
         #endregion
 
         // Add services to the container.

@@ -8,6 +8,7 @@ using se347_be.Work.Database.Entity;
 using se347_be.Work.DTOs.Document;
 using se347_be.Work.Services.Interfaces;
 using se347_be.Work.Storage.Interfaces;
+using se347_be.Work.URLFileHelper;
 
 namespace se347_be.Work.Controllers
 {
@@ -20,17 +21,19 @@ namespace se347_be.Work.Controllers
         private readonly IQuizService _quizService;
         private readonly IDocumentProcessorService _docProcessor;
         private readonly IDocumentStorage _documentStorage;
+        private readonly IURLHelper _uRLFileHelper;
 
         public DocumentController(
             MyAppDbContext context,
             IQuizService quizService,
             IDocumentProcessorService docProcessor,
-            IDocumentStorage documentStorage)
+            IDocumentStorage documentStorage, IURLHelper uRLFileHelper)
         {
             _context = context;
             _quizService = quizService;
             _docProcessor = docProcessor;
             _documentStorage = documentStorage;
+            _uRLFileHelper = uRLFileHelper;
         }
 
         private Guid GetCurrentUserId()
@@ -91,7 +94,7 @@ namespace se347_be.Work.Controllers
                     Id = Guid.NewGuid(),
                     QuizId = quizId,
                     FileName = file.FileName,
-                    StorageUrl = filePath,
+                    StorageUrl = _uRLFileHelper.GetLiveURL(filePath),
                     Status = "Uploaded",
                     UploadAt = DateTime.UtcNow
                 };
@@ -149,7 +152,7 @@ namespace se347_be.Work.Controllers
                         Id = d.Id,
                         QuizId = d.QuizId,
                         FileName = d.FileName,
-                        StorageUrl = d.StorageUrl,
+                        StorageUrl = _uRLFileHelper.GetLiveURL(d.StorageUrl),
                         Status = d.Status,
                         UploadAt = d.UploadAt
                     })

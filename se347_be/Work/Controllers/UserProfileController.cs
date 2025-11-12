@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using se347_be.Work.DTOs.UserProfile;
 using se347_be.Work.Services.Interfaces;
+using se347_be.Work.URLFileHelper;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
