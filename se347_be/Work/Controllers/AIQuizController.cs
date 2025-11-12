@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using se347_be.Work.DTOs.AI;
 using se347_be.Work.Services.Interfaces;
+using se347_be.Work.Storage.Interfaces;
 
 namespace se347_be.Work.Controllers
 {

@@ -7,6 +7,7 @@ using se347_be.Database;
 using se347_be.Work.Database.Entity;
 using se347_be.Work.DTOs.Document;
 using se347_be.Work.Services.Interfaces;
+using se347_be.Work.Storage.Interfaces;
 
 namespace se347_be.Work.Controllers
 {

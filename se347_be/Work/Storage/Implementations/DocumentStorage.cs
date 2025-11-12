@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.Options;
 using se347_be.Work.Controllers;
-using se347_be.Work.Services.Interfaces;
 using se347_be.Work.Storage;
+using se347_be.Work.Storage.Interfaces;
 using Sprache;
 
-namespace se347_be.Work.Services.Implementations
+namespace se347_be.Work.Storage.Implementations
 {
     public class DocumentStorage : IDocumentStorage
     {
@@ -44,9 +44,9 @@ namespace se347_be.Work.Services.Implementations
             }
 
 
-            if (System.IO.File.Exists(urlToFile))
+            if (File.Exists(urlToFile))
             {
-                System.IO.File.Delete(urlToFile);
+                File.Delete(urlToFile);
                 return true;
             }
             return false;

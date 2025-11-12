@@ -30,8 +30,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Work\NewFolder\" />
     <Folder Include="wwwroot\" />
     <Folder Include="wwwroot\uploads\images\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Work\Storage\Implementations\DocumentProcessor.cs" />
+    <None Include="Work\Storage\Interfaces\IDocumentProcessor.cs" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-﻿namespace se347_be.Work.Services.Interfaces
+﻿namespace se347_be.Work.Storage.Interfaces
 {
     public interface IImageProcessor
     {

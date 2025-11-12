@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using se347_be.Work.Services.Interfaces;
 using se347_be.Work.Storage;
+using se347_be.Work.Storage.Interfaces;
 
-namespace se347_be.Work.Services.Implementations
+namespace se347_be.Work.Storage.Implementations
 {
     public class ImageStorage : IImageStorage
     {
@@ -64,9 +64,9 @@ namespace se347_be.Work.Services.Implementations
                 urlToFile = Path.Combine(_storagePath, urlToFile);
             }
 
-            if (System.IO.File.Exists(urlToFile))
+            if (File.Exists(urlToFile))
             {
-                System.IO.File.Delete(urlToFile);
+                File.Delete(urlToFile);
                 return true;
             }
             return false;

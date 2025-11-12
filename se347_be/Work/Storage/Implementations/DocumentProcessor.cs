@@ -5,9 +5,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas.Parser;
 using iText.Kernel.Pdf.Canvas.Parser.Listener;
-using se347_be.Work.Services.Interfaces;
+using se347_be.Work.Storage.Interfaces;
 
-namespace se347_be.Work.Services.Implementations
+namespace se347_be.Work.Storage.Implementations
 {
     public class DocumentProcessorService : IDocumentProcessorService
     {

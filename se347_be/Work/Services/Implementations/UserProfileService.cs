@@ -6,6 +6,7 @@ using se347_be.Work.Database.Entity;
 using se347_be.Work.DTOs.UserProfile;
 using se347_be.Work.Repositories.Interfaces;
 using se347_be.Work.Services.Interfaces;
+using se347_be.Work.Storage.Interfaces;
 
 namespace se347_be.Work.Services.Implementations
 {

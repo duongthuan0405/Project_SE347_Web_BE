@@ -1,6 +1,6 @@
-﻿using se347_be.Work.Services.Interfaces;
+﻿using se347_be.Work.Storage.Interfaces;
 
-namespace se347_be.Work.Services.Implementations
+namespace se347_be.Work.Storage.Implementations
 {
     public class ImageProcessor : IImageProcessor
     {
