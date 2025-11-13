@@ -41,7 +41,7 @@ namespace se347_be.Work.Repositories.Implementations
             }
         }
 
-        public Task<AppUser?> GetUserById(Guid id)
+        public Task<AppUser?> GetUserByIdAsync(Guid id)
         {
             var user = _db.Users.FirstOrDefaultAsync(u => u.Id == id);
             return user;

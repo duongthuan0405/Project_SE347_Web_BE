@@ -12,6 +12,6 @@ namespace se347_be.Work.Repositories.Interfaces
         public Task<Guid> AddNewUserAsync(AppUser user);
         public Task RemoveByIdAsync(Guid id);
         public Task<AppUser?> GetUserWithGmailAndPasswordAsync(string email, string password);
-        public Task<AppUser?> GetUserById(Guid id);
+        public Task<AppUser?> GetUserByIdAsync(Guid id);
     }
 }
