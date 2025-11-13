@@ -1,4 +1,4 @@
-﻿namespace se347_be.Work.DTOs
+﻿namespace se347_be.Work.DTOs.Authen
 {
     public class VerifyAccountDTO
     {

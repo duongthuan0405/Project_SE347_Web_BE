@@ -13,13 +13,15 @@ using System.Threading.Tasks;
 namespace se347_be.Work.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("/api/[controller]")]
     public class UserProfileController : ControllerBase
     {
         IUserProfileService _userProfileService;
-        public UserProfileController(IUserProfileService userProfileService)
+        IUserService _userService;
+        public UserProfileController(IUserProfileService userProfileService, IUserService userService)
         {
             _userProfileService = userProfileService;
+            _userService = userService;
         }
 
         private string GetCurrentUserId()
@@ -55,7 +57,59 @@ namespace se347_be.Work.Controllers
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = ex.Message });
             }
+        }
 
+        [HttpGet]
+        [Authorize]
+        public async Task<ActionResult<UserProfileResponseDTO>> GetCurrentUserProfile()
+        {
+            try
+            {
+                var userId = GetCurrentUserId().ToString();
+                var result = await _userProfileService.GetProfileByIdAsync(userId);
+                if (result == null)
+                {
+                    return StatusCode(StatusCodes.Status404NotFound, new { Message = "User not found!" });
+                }
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status401Unauthorized, new { Message = ex.Message });
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
+
+        [HttpGet("full")]
+        [Authorize]
+        public async Task<ActionResult<UserProfileFullDTO>> GetCurrentUserProfileFull()
+        {
+            try
+            {
+                var userId = GetCurrentUserId().ToString();
+                var taskGetProfile = _userProfileService.GetProfileByIdAsync(userId);
+                var taskGetUser = _userService.GetUserByIdAsync(userId);
+
+                var profile = await taskGetProfile;
+                var user = await taskGetUser;
+
+                if (profile == null || user == null)
+                {
+                    return StatusCode(StatusCodes.Status404NotFound, new { Message = "User not found!" });
+                }
+                return Ok(new UserProfileFullDTO { User = user, UserProfile = profile});
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status401Unauthorized, new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
         }
     }
 }

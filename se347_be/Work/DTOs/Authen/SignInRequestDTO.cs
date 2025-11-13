@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace se347_be.Work.DTOs
+namespace se347_be.Work.DTOs.Authen
 {
     public class SignInRequestDTO
     {
