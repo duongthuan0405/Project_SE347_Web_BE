@@ -8,7 +8,7 @@ namespace se347_be.Work.URLFileHelper
         private readonly string _baseURL = "";
         public URLHelper(IConfiguration config)
         {
-            _baseURL = config["AppSettings:BareUrl"] ?? "http://localhost:5007";
+            _baseURL = config["AppSettings:BaseUrl"] ?? "http://localhost:5007";
 
             var requestPath = config["FileSettings:RequestPath"] ?? "uploads_df";
             _baseURL = new Uri(new Uri(_baseURL), requestPath + "/").ToString();
