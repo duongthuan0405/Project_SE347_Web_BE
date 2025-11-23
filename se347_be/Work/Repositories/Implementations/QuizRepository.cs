@@ -25,6 +25,8 @@ namespace se347_be.Work.Repositories.Implementations
         {
             return await _db.Quizzes
                 .Include(q => q.Participations)
+                .Include(q => q.QuizQuestions)
+
                 .FirstOrDefaultAsync(q => q.Id == id);
         }
 

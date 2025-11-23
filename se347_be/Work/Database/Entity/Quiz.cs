@@ -23,7 +23,7 @@ namespace se347_be.Work.Database.Entity
 
         [Column(TypeName = "timestamp")]
         [DefaultValue("getdate()")]
-        public DateTime CreateAt { get; set; } = DateTime.Now;
+        public DateTime CreateAt { get; set; } = DateTime.UtcNow;
 
         [Column(TypeName = "timestamp")]
         public DateTime? StartTime { get; set; }
