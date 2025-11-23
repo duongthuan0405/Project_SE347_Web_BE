@@ -1,4 +1,5 @@
 
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -86,6 +87,10 @@ public class Program
         // UserProfile
         builder.Services.AddScoped<IUserProfileService, UserProfileService>();
         builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+
+        // User
+        builder.Services.AddScoped<IUserService, UserService>();
+
 
         // ImageStorage
         builder.Services.AddScoped<IImageStorage, ImageStorage>();   

@@ -90,11 +90,10 @@ namespace se347_be.Work.Controllers
             try
             {
                 var userId = GetCurrentUserId().ToString();
-                var taskGetProfile = _userProfileService.GetProfileByIdAsync(userId);
-                var taskGetUser = _userService.GetUserByIdAsync(userId);
+    
+                var profile = await _userProfileService.GetProfileByIdAsync(userId);
+                var user = await _userService.GetUserByIdAsync(userId);
 
-                var profile = await taskGetProfile;
-                var user = await taskGetUser;
 
                 if (profile == null || user == null)
                 {

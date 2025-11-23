@@ -41,6 +41,12 @@ namespace se347_be.Work.Repositories.Implementations
             }
         }
 
+        public async Task<AppUser?> FindUserByEmail(string email)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            return user;
+        }
+
         public Task<AppUser?> GetUserByIdAsync(Guid id)
         {
             var user = _db.Users.FirstOrDefaultAsync(u => u.Id == id);

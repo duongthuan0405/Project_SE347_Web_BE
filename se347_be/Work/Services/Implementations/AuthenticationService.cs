@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using se347_be.Work.Database.Entity;
 using se347_be.Work.DTOs;
 using se347_be.Work.DTOs.Authen;
+using se347_be.Work.DTOs.User;
 using se347_be.Work.Email;
 using se347_be.Work.PasswordHelper;
 using se347_be.Work.Repositories.Interfaces;
@@ -32,19 +33,36 @@ namespace se347_be.Work.Services.Implementations
             await _email.SendOTPAsync(resendOTPDTO.EmailTo, true);
         }
 
-        public async Task<string?> SignInAsync(SignInRequestDTO signInRequestDTO)
+        public async Task<UserResponseDTO?> SignInAsync(SignInRequestDTO signInRequestDTO)
         {
             AppUser? user = await _userRepo.GetUserWithGmailAndPasswordAsync(signInRequestDTO.Email, signInRequestDTO.Password);
-            return user != null ? user.Id.ToString() : null;
+            if (user == null)
+            {
+                return null;
+            }
+
+            return new UserResponseDTO()
+            {
+                Email = user.Email,
+                Id = user.Id.ToString(),
+            };
+                
         }
 
         public async Task<string> SignUpAsync(SignUpRequestDTO signUpRequestDTO)
         {
             if (signUpRequestDTO.Password.Length <= 5)
             {
-                throw new InvalidDataException("OTP length must have at least 6 characters");
+                throw new InvalidDataException("Password length must have at least 6 characters");
             }
 
+            var userWithEmail = await _userRepo.FindUserByEmail(signUpRequestDTO.Email);
+            if(userWithEmail != null)
+            {
+                
+                throw new InvalidDataException("This email has been used!");
+            }
+            
             try
             {
                 PendingUser pendingUser = new PendingUser()

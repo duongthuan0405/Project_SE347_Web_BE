@@ -13,5 +13,6 @@ namespace se347_be.Work.Repositories.Interfaces
         public Task RemoveByIdAsync(Guid id);
         public Task<AppUser?> GetUserWithGmailAndPasswordAsync(string email, string password);
         public Task<AppUser?> GetUserByIdAsync(Guid id);
+        public Task<AppUser?> FindUserByEmail(string email);
     }
 }
