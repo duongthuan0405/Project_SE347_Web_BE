@@ -299,7 +299,7 @@ namespace se347_be.Work.Services.Implementations
                         Content = generatedQ.Question,
                         Points = generatedQ.Points,
                         CreatorId = creatorId,
-                        Category = "AI Generated", // Default category
+                        Category = $"AI Generated {fileName}", // Default category
                         IsDraft = false // Not draft, ready to use
                     };
 

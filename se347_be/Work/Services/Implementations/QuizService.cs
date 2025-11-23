@@ -10,29 +10,37 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using System.Linq;
 using se347_be.Work.Storage.Interfaces;
+using se347_be.Work.DTOs.QuestionBank;
 
 namespace se347_be.Work.Services.Implementations
 {
     public class QuizService : IQuizService
     {
         private readonly IQuizRepository _quizRepository;
+        private readonly IQuestionRepository _questionRepository;
         private readonly IQuestionBankRepository _questionBankRepository;
         private readonly MyAppDbContext _context;
         private readonly IGeminiAIService _geminiService;
         private readonly IDocumentProcessorService _docProcessor;
+        private readonly IAnswerRepository _answerRepository;
+ 
 
         public QuizService(
             IQuizRepository quizRepository,
             IQuestionBankRepository questionBankRepository,
             MyAppDbContext context,
             IGeminiAIService geminiService,
-            IDocumentProcessorService docProcessor)
+            IDocumentProcessorService docProcessor,
+            IQuestionRepository questionRepository,
+            IAnswerRepository answerRepository)
         {
             _quizRepository = quizRepository;
             _questionBankRepository = questionBankRepository;
             _context = context;
             _geminiService = geminiService;
             _docProcessor = docProcessor;
+            _questionRepository = questionRepository;
+            _answerRepository = answerRepository;
         }
 
         public async Task<QuizResponseDTO> CreateQuizAsync(CreateQuizDTO createQuizDTO, Guid creatorId)
@@ -328,7 +336,7 @@ namespace se347_be.Work.Services.Implementations
             await _quizRepository.DeleteQuizAsync(quizId);
         }
 
-        public async Task<DTOs.QuestionBank.QuestionBankDetailDTO> CreateQuestionInQuizAsync(Guid quizId, CreateQuestionInQuizDTO dto, Guid creatorId)
+        public async Task CreateQuestionInQuizAsync(Guid quizId, CreateQuestionInQuizDTO dto, Guid creatorId)
         {
             // Verify quiz ownership
             var isOwned = await _quizRepository.IsQuizOwnedByUserAsync(quizId, creatorId);
@@ -337,68 +345,89 @@ namespace se347_be.Work.Services.Implementations
                 throw new UnauthorizedAccessException("You don't have permission to modify this quiz");
             }
 
-            // Validate at least one correct answer
-            if (!dto.Answers.Any(a => a.IsCorrectAnswer))
-            {
-                throw new InvalidDataException("At least one answer must be marked as correct");
-            }
-
-            // Create question
-            var question = new Question
-            {
-                Id = Guid.NewGuid(),
-                Content = dto.Content,
-                Points = dto.Points,
-                Category = dto.Category,
-                IsDraft = dto.IsDraft,
-                CreatorId = creatorId
-            };
-
-            _context.Questions.Add(question);
-
-            // Create answers
-            var answers = dto.Answers.Select(a => new Answer
-            {
-                Id = Guid.NewGuid(),
-                Content = a.Content,
-                IsCorrectAnswer = a.IsCorrectAnswer,
-                QuestionId = question.Id
-            }).ToList();
-
-            _context.Answers.AddRange(answers);
-
-            // Get max OrderIndex for auto-increment
-            var maxOrder = await _context.QuizQuestions
+            var existingQuestionIds = await _context.QuizQuestions
                 .Where(qq => qq.QuizId == quizId)
-                .MaxAsync(qq => (int?)qq.OrderIndex) ?? 0;
+                .Select(qq => qq.QuestionId)
+                .ToHashSetAsync();
 
-            // Link question to quiz
-            var quizQuestion = new QuizQuestion
+
+            if (dto.Id == null || !existingQuestionIds.Contains(Guid.Parse(dto.Id)))
             {
-                QuizId = quizId,
-                QuestionId = question.Id,
-                OrderIndex = maxOrder + 1
-            };
-
-            _context.QuizQuestions.Add(quizQuestion);
-            await _context.SaveChangesAsync();
-
-            // Return response DTO
-            return new DTOs.QuestionBank.QuestionBankDetailDTO
-            {
-                Id = question.Id,
-                Content = question.Content,
-                Points = question.Points,
-                Category = question.Category,
-                IsDraft = question.IsDraft,
-                UsedInQuizCount = 1,
-                Answers = answers.Select(a => new DTOs.QuestionBank.AnswerDetailDTO
+                // Validate at least one correct answer
+                if (!dto.Answers.Any(a => a.IsCorrectAnswer))
                 {
-                    Id = a.Id,
+                    throw new InvalidDataException("At least one answer must be marked as correct");
+                }
+
+                var question = new Question
+                {
+
+                    Content = dto.Content,
+                    Points = dto.Points,
+        
+                    IsDraft = dto.IsDraft,
+                    CreatorId = creatorId
+                };
+
+                Guid newQuestionId = await _questionRepository.CreateQuestionAsync(question);
+
+                var newAnswers = dto.Answers.Select(a => new Answer()
+                {
+                    QuestionId = newQuestionId,
                     Content = a.Content,
                     IsCorrectAnswer = a.IsCorrectAnswer
-                }).ToList()
-            };
+                }).ToList();
+
+                await _answerRepository.CreateAnswersAsync(newAnswers);
+
+
+
+                // Get max OrderIndex for auto-increment
+                var maxOrder = await _context.QuizQuestions
+                    .Where(qq => qq.QuizId == quizId)
+                    .MaxAsync(qq => (int?)qq.OrderIndex) ?? 0;
+
+
+
+                // Link question to quiz
+                var quizQuestion = new QuizQuestion
+                {
+                    QuizId = quizId,
+                    QuestionId = newQuestionId,
+                    OrderIndex = maxOrder + 1
+                };
+
+                _context.QuizQuestions.Add(quizQuestion);
+                await _context.SaveChangesAsync();
+
+            }
+            else
+            {
+                // Question exists => update
+                await _questionRepository.UpdateQuestionAsync(new Question()
+                {
+                    Id = Guid.Parse(dto.Id),
+                    Content = dto.Content,
+                    Points = dto.Points,
+       
+                    IsDraft = dto.IsDraft,
+                    CreatorId = creatorId
+                });
+
+               
+
+                
+                var updatedAnswers = dto.Answers.Select(a => new Answer()
+                {
+                    QuestionId = Guid.Parse(dto.Id),
+                    Content = a.Content,
+                    IsCorrectAnswer = a.IsCorrectAnswer
+                }).ToList();
+                await _answerRepository.UpdateAnswer(updatedAnswers);
+                
+            }
+
+           
         }
 
         public async Task AddQuestionToQuizAsync(Guid quizId, Guid questionId, Guid creatorId)

@@ -36,5 +36,12 @@ namespace se347_be.Work.Repositories.Implementations
                 .Where(a => a.QuestionId == questionId)
                 .ToListAsync();
         }
+
+        public async Task UpdateAnswer(List<Answer> updatedAnswers)
+        {
+            _db.Answers.UpdateRange(updatedAnswers);
+            await _db.SaveChangesAsync();
+           
+        }
     }
 }

@@ -5,6 +5,7 @@ namespace se347_be.Work.DTOs.Quiz
 {
     public class CreateQuestionInQuizDTO
     {
+        public string? Id { get; set; } = null;
         [Required(ErrorMessage = "Content is required")]
         [StringLength(255)]
         public string Content { get; set; } = "";
@@ -12,8 +13,7 @@ namespace se347_be.Work.DTOs.Quiz
         [Range(1, 100)]
         public int Points { get; set; } = 1;
 
-        [StringLength(100)]
-        public string? Category { get; set; }
+        
 
         public bool IsDraft { get; set; } = false;
 

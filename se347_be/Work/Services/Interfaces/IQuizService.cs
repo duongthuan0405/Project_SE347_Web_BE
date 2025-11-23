@@ -10,7 +10,7 @@ namespace se347_be.Work.Services.Interfaces
         Task<QuizDetailDTO> GetQuizDetailAsync(Guid quizId, Guid creatorId);
         Task<QuizResponseDTO> UpdateQuizAsync(Guid quizId, UpdateQuizDTO updateQuizDTO, Guid creatorId);
         Task DeleteQuizAsync(Guid quizId, Guid creatorId);
-        Task<QuestionBankDetailDTO> CreateQuestionInQuizAsync(Guid quizId, CreateQuestionInQuizDTO dto, Guid creatorId);
+        Task CreateQuestionInQuizAsync(Guid quizId, CreateQuestionInQuizDTO dtos, Guid creatorId);
         Task AddQuestionToQuizAsync(Guid quizId, Guid questionId, Guid creatorId);
         Task RemoveQuestionFromQuizAsync(Guid quizId, Guid questionId, Guid creatorId);
         Task<QuizDetailDTO> GenerateQuestionsFromDocumentAsync(Guid quizId, GenerateQuestionsFromDocumentDTO dto, Guid creatorId);

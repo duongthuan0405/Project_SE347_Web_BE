@@ -51,48 +51,6 @@ namespace se347_be.Work.Controllers
             }
         }
 
-        [HttpGet]
-        public async Task<ActionResult<List<QuizResponseDTO>>> GetQuizzes()
-        {
-            try
-            {
-                var userId = GetCurrentUserId();
-                var quizzes = await _quizService.GetQuizzesByCreatorAsync(userId);
-                return Ok(quizzes);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { Message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
-            }
-        }
-
-        [HttpGet("{id}")]
-        public async Task<ActionResult<QuizDetailDTO>> GetQuizDetail([FromRoute] Guid id)
-        {
-            try
-            {
-                var userId = GetCurrentUserId();
-                var quiz = await _quizService.GetQuizDetailAsync(id, userId);
-                return Ok(quiz);
-            }
-            catch (InvalidDataException ex)
-            {
-                return NotFound(new { Message = ex.Message });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { Message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
-            }
-        }
-
         [HttpPut("{id}")]
         public async Task<ActionResult<QuizResponseDTO>> UpdateQuiz([FromRoute] Guid id, [FromBody] UpdateQuizDTO updateQuizDTO)
         {
@@ -124,6 +82,48 @@ namespace se347_be.Work.Controllers
                 var userId = GetCurrentUserId();
                 await _quizService.DeleteQuizAsync(id, userId);
                 return Ok(new { Message = "Quiz deleted successfully" });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<List<QuizResponseDTO>>> GetQuizzes()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var quizzes = await _quizService.GetQuizzesByCreatorAsync(userId);
+                return Ok(quizzes);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<QuizDetailDTO>> GetQuizDetail([FromRoute] Guid id)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var quiz = await _quizService.GetQuizDetailAsync(id, userId);
+                return Ok(quiz);
+            }
+            catch (InvalidDataException ex)
+            {
+                return NotFound(new { Message = ex.Message });
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -207,7 +207,7 @@ namespace se347_be.Work.Controllers
             }
         }
 
-        [HttpPost("{quizId}/questions")]
+        [HttpPut("{quizId}/questions")]
         public async Task<ActionResult> CreateQuestionInQuiz(
             [FromRoute] Guid quizId,
             [FromBody] CreateQuestionInQuizDTO dto)
@@ -215,10 +215,9 @@ namespace se347_be.Work.Controllers
             try
             {
                 var userId = GetCurrentUserId();
-                var question = await _quizService.CreateQuestionInQuizAsync(quizId, dto, userId);
+                await _quizService.CreateQuestionInQuizAsync(quizId, dto, userId);
                 return Ok(new { 
                     Message = "Question created and added to quiz successfully",
-                    Question = question
                 });
             }
             catch (InvalidDataException ex)

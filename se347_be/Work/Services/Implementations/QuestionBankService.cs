@@ -67,6 +67,7 @@ namespace se347_be.Work.Services.Implementations
 
         public async Task<List<QuestionBankResponseDTO>> GetQuestionsAsync(Guid creatorId, string? category = null, string? searchTerm = null)
         {
+            
             var questions = await _questionRepo.GetByCreatorIdAsync(creatorId, category, searchTerm);
 
             return questions.Select(q => new QuestionBankResponseDTO

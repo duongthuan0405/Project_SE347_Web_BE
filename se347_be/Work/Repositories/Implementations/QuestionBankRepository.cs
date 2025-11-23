@@ -23,10 +23,11 @@ namespace se347_be.Work.Repositories.Implementations
 
         public async Task<List<Question>> GetByCreatorIdAsync(Guid creatorId, string? category = null, string? searchTerm = null)
         {
+
             var query = _context.Questions
                 .Include(q => q.Answers)
                 .Include(q => q.QuizQuestions)
-                .Where(q => q.CreatorId == creatorId);
+                .Where(q => q.CreatorId == creatorId && q.Category != null);
 
             if (!string.IsNullOrEmpty(category))
                 query = query.Where(q => q.Category == category);
@@ -42,7 +43,7 @@ namespace se347_be.Work.Repositories.Implementations
             return await _context.Questions
                 .Include(q => q.Answers)
                 .Include(q => q.QuizQuestions)
-                .FirstOrDefaultAsync(q => q.Id == questionId);
+                .FirstOrDefaultAsync(q => q.Id == questionId && q.Category != null);
         }
 
         public async Task UpdateAsync(Question question)
@@ -56,7 +57,7 @@ namespace se347_be.Work.Repositories.Implementations
             var question = await _context.Questions.FindAsync(questionId);
             if (question != null)
             {
-                _context.Questions.Remove(question);
+                question.Category = null; 
                 await _context.SaveChangesAsync();
             }
         }

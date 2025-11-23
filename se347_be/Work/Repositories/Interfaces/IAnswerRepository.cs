@@ -7,5 +7,6 @@ namespace se347_be.Work.Repositories.Interfaces
         Task CreateAnswersAsync(List<Answer> answers);
         Task DeleteAnswersByQuestionIdAsync(Guid questionId);
         Task<List<Answer>> GetAnswersByQuestionIdAsync(Guid questionId);
+        Task UpdateAnswer(List<Answer> updatedAnswers);
     }
 }
