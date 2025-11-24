@@ -20,6 +20,7 @@ namespace se347_be.Work.DTOs.QuestionBank
 
     public class CreateAnswerDTO
     {
+        public string? Id { get; set; } = null;
         [Required]
         [StringLength(500)]
         public string Content { get; set; } = null!;

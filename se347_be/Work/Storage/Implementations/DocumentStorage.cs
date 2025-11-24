@@ -56,6 +56,11 @@ namespace se347_be.Work.Storage.Implementations
             return false;
         }
 
+        public string GetFullPath(string urlToFile)
+        {
+            return Path.Combine(_storagePath, urlToFile);
+        }
+
         public async Task<string> SaveAsync(IFormFile file, string subFolder, string name)
         {
             try

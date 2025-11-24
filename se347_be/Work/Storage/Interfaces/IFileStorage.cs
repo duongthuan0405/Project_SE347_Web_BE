@@ -4,5 +4,6 @@
     {
         Task<string> SaveAsync(IFormFile file, string subFolder = "", string name = "");
         bool Delete(string urlToFile);
+        string GetFullPath(string urlToFile);
     }
 }

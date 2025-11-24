@@ -67,11 +67,15 @@ namespace se347_be.Work.Services.Implementations
                 }
             };
 
+            
+
             var jsonContent = new StringContent(
                 JsonSerializer.Serialize(requestBody),
                 Encoding.UTF8,
                 "application/json"
             );
+
+           
 
             try
             {
@@ -79,6 +83,13 @@ namespace se347_be.Work.Services.Implementations
                     $"{GEMINI_API_URL}?key={apiKey}",
                     jsonContent
                 );
+
+                lock (Console.Out)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine(response);
+                    Console.ResetColor();
+                }
 
                 response.EnsureSuccessStatusCode();
                 var responseContent = await response.Content.ReadAsStringAsync();
@@ -273,6 +284,8 @@ namespace se347_be.Work.Services.Implementations
                 numberOfQuestions,
                 additionalInstructions);
 
+            
+
             if (!aiResponse.Questions.Any())
             {
                 throw new InvalidOperationException("AI did not generate any questions");
@@ -299,7 +312,7 @@ namespace se347_be.Work.Services.Implementations
                         Content = generatedQ.Question,
                         Points = generatedQ.Points,
                         CreatorId = creatorId,
-                        Category = $"AI Generated {fileName}", // Default category
+                        Category = $"AI Generated", // Default category
                         IsDraft = false // Not draft, ready to use
                     };
 

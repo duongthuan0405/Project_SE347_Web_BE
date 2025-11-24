@@ -23,6 +23,7 @@ namespace se347_be.Work.Services.Implementations
         private readonly IGeminiAIService _geminiService;
         private readonly IDocumentProcessorService _docProcessor;
         private readonly IAnswerRepository _answerRepository;
+        private readonly IDocumentStorage _documentStorage;
  
 
         public QuizService(
@@ -32,7 +33,8 @@ namespace se347_be.Work.Services.Implementations
             IGeminiAIService geminiService,
             IDocumentProcessorService docProcessor,
             IQuestionRepository questionRepository,
-            IAnswerRepository answerRepository)
+            IAnswerRepository answerRepository,
+            IDocumentStorage documentStorage)
         {
             _quizRepository = quizRepository;
             _questionBankRepository = questionBankRepository;
@@ -41,6 +43,7 @@ namespace se347_be.Work.Services.Implementations
             _docProcessor = docProcessor;
             _questionRepository = questionRepository;
             _answerRepository = answerRepository;
+            _documentStorage = documentStorage;
         }
 
         public async Task<QuizResponseDTO> CreateQuizAsync(CreateQuizDTO createQuizDTO, Guid creatorId)
@@ -190,6 +193,7 @@ namespace se347_be.Work.Services.Implementations
                     .Select(qq => new QuestionResponseDTO
                     {
                         Id = qq.Question!.Id,
+                        Score = qq.Question!.Points,
                         Content = qq.Question.Content,
                         QuizId = quiz.Id, // Use quiz.Id instead of question.QuizId
                         Answers = qq.Question.Answers?.Select(a => new AnswerResponseDTO
@@ -414,11 +418,10 @@ namespace se347_be.Work.Services.Implementations
                     CreatorId = creatorId
                 });
 
-               
-
-                
+                               
                 var updatedAnswers = dto.Answers.Select(a => new Answer()
                 {
+                    Id = Guid.Parse(a.Id),
                     QuestionId = Guid.Parse(dto.Id),
                     Content = a.Content,
                     IsCorrectAnswer = a.IsCorrectAnswer
@@ -661,6 +664,9 @@ namespace se347_be.Work.Services.Implementations
 
         private async Task<string> ReadDocumentContentAsync(string storageUrl)
         {
+            storageUrl = _documentStorage.GetFullPath(storageUrl);
+            Console.WriteLine(storageUrl);
+
             if (!File.Exists(storageUrl))
             {
                 throw new FileNotFoundException("Document file not found", storageUrl);

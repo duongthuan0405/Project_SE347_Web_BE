@@ -8,5 +8,6 @@ namespace se347_be.Work.DTOs.Question
         public string Content { get; set; } = "";
         public Guid? QuizId { get; set; }
         public List<AnswerResponseDTO>? Answers { get; set; }
+        public int Score { get; set; } = 1;
     }
 }
