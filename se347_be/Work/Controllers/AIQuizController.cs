@@ -9,7 +9,7 @@ using se347_be.Work.Storage.Interfaces;
 namespace se347_be.Work.Controllers
 {
     [ApiController]
-    [Route("api/Quiz/{quizId}/[controller]")]
+    [Route("api/Quiz/[controller]")]
     [Authorize]
     public class AIQuizController : ControllerBase
     {
@@ -46,7 +46,7 @@ namespace se347_be.Work.Controllers
         [HttpPost("generate")]
         [Consumes("multipart/form-data")]
         public async Task<ActionResult<GenerateQuizResponseDTO>> GenerateQuestions(
-            [FromRoute] Guid quizId,
+     
             GenerateQuizFormDTO request)
         {
             try
@@ -64,11 +64,11 @@ namespace se347_be.Work.Controllers
                 var userId = GetCurrentUserId();
 
                 // Verify quiz ownership
-                var quiz = await _quizService.GetQuizDetailAsync(quizId, userId);
-                if (quiz == null)
-                {
-                    return NotFound(new { Message = "Quiz not found or you don't have permission" });
-                }
+                //var quiz = await _quizService.GetQuizDetailAsync(quizId, userId);
+                //if (quiz == null)
+                //{
+                //    return NotFound(new { Message = "Quiz not found or you don't have permission" });
+                //}
 
                 _logger.LogInformation("Extracting text from file: {FileName}", request.File.FileName);
                 var textContent = await _docProcessor.ExtractTextFromFileAsync(request.File);
@@ -82,11 +82,12 @@ namespace se347_be.Work.Controllers
                 
                 // Generate and save to Question Bank + Auto-link to Quiz
                 var result = await _geminiService.GenerateAndSaveQuestionsAsync(
-                    quizId,
+                   
                     textContent,
                     request.File.FileName,
                     request.NumberOfQuestions,
                     userId,
+                    request.Category,
                     request.AdditionalInstructions
                 );
 

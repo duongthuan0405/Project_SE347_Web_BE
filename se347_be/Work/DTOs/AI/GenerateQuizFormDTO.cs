@@ -12,5 +12,6 @@ namespace se347_be.Work.DTOs.AI
         public int NumberOfQuestions { get; set; } = 10;
 
         public string? AdditionalInstructions { get; set; }
+        public string Category { get; set; } = "";
     }
 }

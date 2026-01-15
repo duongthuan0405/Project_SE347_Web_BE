@@ -433,46 +433,57 @@ namespace se347_be.Work.Services.Implementations
            
         }
 
-        public async Task AddQuestionToQuizAsync(Guid quizId, Guid questionId, Guid creatorId)
+        public async Task AddQuestionToQuizAsync(
+    Guid quizId,
+    List<Guid> questionIds,
+    Guid creatorId
+)
         {
-            // Verify quiz ownership
+            // 1️⃣ Verify quiz ownership
             var isOwned = await _quizRepository.IsQuizOwnedByUserAsync(quizId, creatorId);
             if (!isOwned)
             {
                 throw new UnauthorizedAccessException("You don't have permission to modify this quiz");
             }
 
-            // Verify question ownership
-            var isQuestionOwner = await _questionBankRepository.IsOwnerAsync(questionId, creatorId);
-            if (!isQuestionOwner)
+            if (questionIds == null || !questionIds.Any())
             {
-                throw new UnauthorizedAccessException("You don't have permission to use this question");
+                throw new ArgumentException("Question list cannot be empty");
             }
 
-            // Check if question already in quiz
-            var exists = await _context.QuizQuestions
-                .AnyAsync(qq => qq.QuizId == quizId && qq.QuestionId == questionId);
+ 
 
-            if (exists)
+            // 3️⃣ Get existing questions already in quiz
+            var existingQuestionIds = await _context.QuizQuestions
+                .Where(qq => qq.QuizId == quizId && questionIds.Contains(qq.QuestionId))
+                .Select(qq => qq.QuestionId)
+                .ToListAsync();
+
+            // 4️⃣ Filter only new questions
+            var newQuestionIds = questionIds.Except(existingQuestionIds).ToList();
+
+            if (!newQuestionIds.Any())
             {
-                throw new InvalidOperationException("Question is already added to this quiz");
+                throw new InvalidOperationException("All selected questions are already added to this quiz");
             }
 
-            // Get max OrderIndex for auto-increment
+            // 5️⃣ Get max OrderIndex
             var maxOrder = await _context.QuizQuestions
                 .Where(qq => qq.QuizId == quizId)
                 .MaxAsync(qq => (int?)qq.OrderIndex) ?? 0;
 
-            var quizQuestion = new QuizQuestion
+            // 6️⃣ Create QuizQuestion entries
+            var quizQuestions = newQuestionIds.Select((questionId, index) => new QuizQuestion
             {
                 QuizId = quizId,
                 QuestionId = questionId,
-                OrderIndex = maxOrder + 1
-            };
+                OrderIndex = maxOrder + index + 1
+            }).ToList();
 
-            _context.QuizQuestions.Add(quizQuestion);
+            _context.QuizQuestions.AddRange(quizQuestions);
             await _context.SaveChangesAsync();
         }
+
 
         public async Task RemoveQuestionFromQuizAsync(Guid quizId, Guid questionId, Guid creatorId)
         {

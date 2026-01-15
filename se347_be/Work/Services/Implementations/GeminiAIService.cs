@@ -268,14 +268,15 @@ namespace se347_be.Work.Services.Implementations
         }
 
         public async Task<GenerateAndSaveQuizResponseDTO> GenerateAndSaveQuestionsAsync(
-            Guid quizId,
+
             string textContent,
             string fileName,
             int numberOfQuestions,
             Guid creatorId,
+            string category,
             string? additionalInstructions = null)
         {
-            _logger.LogInformation("Generating and saving {Count} questions for quiz {QuizId}", numberOfQuestions, quizId);
+            _logger.LogInformation("Generating and saving {Count} questions for quiz {QuizId}", numberOfQuestions, category);
 
             // Step 1: Generate questions using AI
             var aiResponse = await GenerateQuestionsFromTextAsync(
@@ -312,7 +313,7 @@ namespace se347_be.Work.Services.Implementations
                         Content = generatedQ.Question,
                         Points = generatedQ.Points,
                         CreatorId = creatorId,
-                        Category = $"AI Generated", // Default category
+                        Category = string.IsNullOrWhiteSpace(category) ? "AIGeneration" : category, // Default category
                         IsDraft = false // Not draft, ready to use
                     };
 
@@ -331,23 +332,23 @@ namespace se347_be.Work.Services.Implementations
                     await _questionBankRepo.CreateAsync(question);
 
                     // Step 3: Auto-link question to quiz via QuizQuestion
-                    var maxOrder = await _context.QuizQuestions
-                        .Where(qq => qq.QuizId == quizId)
-                        .MaxAsync(qq => (int?)qq.OrderIndex) ?? 0;
+                    //var maxOrder = await _context.QuizQuestions
+                    //    .Where(qq => qq.QuizId == quizId)
+                    //    .MaxAsync(qq => (int?)qq.OrderIndex) ?? 0;
 
-                    var quizQuestion = new QuizQuestion
-                    {
-                        QuizId = quizId,
-                        QuestionId = question.Id,
-                        OrderIndex = maxOrder + 1
-                    };
+                    //var quizQuestion = new QuizQuestion
+                    //{
+                    //    QuizId = quizId,
+                    //    QuestionId = question.Id,
+                    //    OrderIndex = maxOrder + 1
+                    //};
 
-                    _context.QuizQuestions.Add(quizQuestion);
+                    //_context.QuizQuestions.Add(quizQuestion);
                     await _context.SaveChangesAsync();
 
                     savedQuestionIds.Add(question.Id);
 
-                    _logger.LogInformation("Saved question {QuestionId} to bank and linked to quiz {QuizId}", question.Id, quizId);
+                    _logger.LogInformation("Saved question {QuestionId} to bank and linked to quiz {QuizId}", question.Id, category);
                 }
                 catch (Exception ex)
                 {

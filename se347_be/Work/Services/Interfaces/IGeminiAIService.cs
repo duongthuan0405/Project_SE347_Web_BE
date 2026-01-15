@@ -11,11 +11,13 @@ namespace se347_be.Work.Services.Interfaces
             string? additionalInstructions = null);
 
         Task<GenerateAndSaveQuizResponseDTO> GenerateAndSaveQuestionsAsync(
-            Guid quizId,
+ 
             string textContent,
             string fileName,
             int numberOfQuestions,
             Guid creatorId,
-            string? additionalInstructions = null);
+            string category,
+            string? additionalInstructions = null
+            );
     }
 }

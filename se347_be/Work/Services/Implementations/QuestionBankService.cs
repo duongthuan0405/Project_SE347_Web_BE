@@ -216,11 +216,11 @@ namespace se347_be.Work.Services.Implementations
                 throw new UnauthorizedAccessException("You don't have permission to delete this question");
 
             // Check if question is being used in any quiz
-            var usageCount = await _questionRepo.CountQuizzesUsingQuestionAsync(questionId);
-            if (usageCount > 0)
-            {
-                throw new InvalidOperationException($"Cannot delete question. It is currently used in {usageCount} quiz(es). Please remove it from all quizzes first.");
-            }
+            //var usageCount = await _questionRepo.CountQuizzesUsingQuestionAsync(questionId);
+            //if (usageCount > 0)
+            //{
+            //    throw new InvalidOperationException($"Cannot delete question. It is currently used in {usageCount} quiz(es). Please remove it from all quizzes first.");
+            //}
 
             await _questionRepo.DeleteAsync(questionId);
         }

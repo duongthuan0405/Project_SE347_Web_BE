@@ -52,6 +52,8 @@ public class Program
         builder.Services.AddSwaggerGen();
         
         // Add CORS
+  
+
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("AllowAll", policy =>

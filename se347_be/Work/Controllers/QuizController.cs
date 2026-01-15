@@ -235,9 +235,9 @@ namespace se347_be.Work.Controllers
         }
 
         [HttpPost("{quizId}/add-question")]
-        public async Task<ActionResult> AddQuestionToQuiz(
+        public async Task<ActionResult> AddQuestionsToQuiz(
             [FromRoute] Guid quizId,
-            [FromBody] AddQuestionToQuizDTO dto)
+            [FromBody] AddQuestionsToQuizDTO dto)
         {
             try
             {
@@ -354,8 +354,8 @@ namespace se347_be.Work.Controllers
 // DTO for add-question endpoint
 namespace se347_be.Work.DTOs.Quiz
 {
-    public class AddQuestionToQuizDTO
+    public class AddQuestionsToQuizDTO
     {
-        public Guid QuestionId { get; set; }
+        public List<Guid> QuestionId { get; set; } = new List<Guid>();
     }
 }
