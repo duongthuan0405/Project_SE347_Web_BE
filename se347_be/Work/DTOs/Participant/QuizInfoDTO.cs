@@ -14,5 +14,6 @@ namespace se347_be.Work.DTOs.Participant
         public string? Message { get; set; }
         public string PresentationMode { get; set; } = "AllAtOnce"; // "AllAtOnce", "OneByOne"
         public bool AllowNavigationBack { get; set; } = true;
+        public int MaxTimesCanAttempt { get; set; } = 1;
     }
 }

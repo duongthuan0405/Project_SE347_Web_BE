@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using se347_be.Database;
 using se347_be.Work.Database.Entity;
 using se347_be.Work.Database.Entities;
@@ -30,7 +30,7 @@ namespace se347_be.Work.Services.Implementations
                 throw new InvalidDataException("Quiz not found");
             }
 
-            var now = DateTime.Now;
+            var UtcNow = DateTime.UtcNow;
             bool isAvailable = true;
             string? message = null;
 
@@ -39,12 +39,12 @@ namespace se347_be.Work.Services.Implementations
                 isAvailable = false;
                 message = "This quiz is not published yet";
             }
-            else if (quiz.StartTime.HasValue && now < quiz.StartTime.Value)
+            else if (quiz.StartTime.HasValue && UtcNow < quiz.StartTime.Value)
             {
                 isAvailable = false;
                 message = $"Quiz will be available from {quiz.StartTime.Value:dd/MM/yyyy HH:mm}";
             }
-            else if (quiz.DueTime.HasValue && now > quiz.DueTime.Value)
+            else if (quiz.DueTime.HasValue && UtcNow > quiz.DueTime.Value)
             {
                 isAvailable = false;
                 message = "Quiz has expired";
@@ -55,15 +55,17 @@ namespace se347_be.Work.Services.Implementations
                 QuizId = quiz.Id,
                 Title = quiz.Title,
                 Description = quiz.Description,
-                StartTime = quiz.StartTime,
-                DueTime = quiz.DueTime,
+                StartTime = DateTime.SpecifyKind(quiz.StartTime ?? DateTime.UtcNow, DateTimeKind.Utc),
+                DueTime = DateTime.SpecifyKind(quiz.DueTime ?? DateTime.UtcNow, DateTimeKind.Utc),
                 DurationInMinutes = quiz.DurationInMinutes,
                 TotalQuestions = quiz.QuizQuestions?.Count ?? 0,
                 RequiresAccessCode = !string.IsNullOrEmpty(quiz.AccessCode),
                 IsAvailable = isAvailable,
                 Message = message,
                 PresentationMode = quiz.PresentationMode,
-                AllowNavigationBack = quiz.AllowNavigationBack
+                AllowNavigationBack = quiz.AllowNavigationBack,
+                MaxTimesCanAttempt = quiz.MaxTimesCanAttempt
+            
             };
         }
 
@@ -95,13 +97,13 @@ namespace se347_be.Work.Services.Implementations
             }
 
             // Check if quiz has started and not expired
-            var now = DateTime.Now;
-            if (quiz.StartTime.HasValue && now < quiz.StartTime.Value)
+            var UtcNow = DateTime.UtcNow;
+            if (quiz.StartTime.HasValue && UtcNow < quiz.StartTime.Value)
             {
                 throw new InvalidDataException("Quiz has not started yet");
             }
 
-            if (quiz.DueTime.HasValue && now > quiz.DueTime.Value)
+            if (quiz.DueTime.HasValue && UtcNow > quiz.DueTime.Value)
             {
                 throw new InvalidDataException("Quiz has expired");
             }
@@ -192,7 +194,7 @@ namespace se347_be.Work.Services.Implementations
                 Email = dto.Email,
                 StudentId = dto.StudentId,
                 ClassName = dto.ClassName,
-                ParticipationTime = DateTime.Now,
+                ParticipationTime = DateTime.UtcNow,
                 SubmitTime = null,
                 ShuffledQuestionsJson = shuffledQuestionsJson,
                 ShuffledAnswersJson = shuffledAnswersJson,
@@ -203,7 +205,7 @@ namespace se347_be.Work.Services.Implementations
             await _context.SaveChangesAsync();
 
             var estimatedEndTime = quiz.DurationInMinutes.HasValue
-                ? DateTime.Now.AddMinutes(quiz.DurationInMinutes.Value)
+                ? DateTime.UtcNow.AddMinutes(quiz.DurationInMinutes.Value)
                 : (DateTime?)null;
 
             return new StartQuizResponseDTO
@@ -313,53 +315,58 @@ namespace se347_be.Work.Services.Implementations
             {
                 Questions = questionDTOs,
                 ParticipationId = participationId,
-                DurationInMinutes = quiz.DurationInMinutes
+                DurationInMinutes = quiz.DurationInMinutes,
+                LeftTimeInSecond = (quiz.DurationInMinutes ?? 0) * 60 - (DateTime.UtcNow - participation.ParticipationTime).TotalSeconds 
             };
         }
 
         public async Task SaveAnswerAsync(Guid participationId, Guid questionId, Guid answerId)
         {
             var participation = await _context.QuizParticipations
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == participationId);
 
             if (participation == null)
-            {
                 throw new InvalidDataException("Participation not found");
-            }
 
+            
             if (participation.SubmitTime.HasValue)
-            {
                 throw new InvalidDataException("Quiz has already been submitted");
+
+            
+            var answerIdsOfQuestion = await _context.Answers
+                .Where(a => a.QuestionId == questionId)
+                .Select(a => a.Id)
+                .ToListAsync();
+
+            if (!answerIdsOfQuestion.Contains(answerId))
+                throw new InvalidDataException("Answer does not belong to question");
+
+           
+            var oldSelections = await _context.AnswerSelections
+                .Where(s =>
+                    s.ParticipationId == participationId &&
+                    answerIdsOfQuestion.Contains(s.AnswerId))
+                .ToListAsync();
+
+            if (oldSelections.Any())
+            {
+                _context.AnswerSelections.RemoveRange(oldSelections);
             }
 
-            // Check if this exact answer already selected (prevent duplicate)
-            var exists = await _context.AnswerSelections
-                .AnyAsync(s => s.ParticipationId == participationId && s.AnswerId == answerId);
+            
+            var newSelection = new AnswerSelection
+            {
+                Id = Guid.NewGuid(),
+                ParticipationId = participationId,
+                AnswerId = answerId
+            };
 
-            if (exists)
-            {
-                // Already selected - toggle off (remove it)
-                var existing = await _context.AnswerSelections
-                    .FirstOrDefaultAsync(s => s.ParticipationId == participationId && s.AnswerId == answerId);
-                if (existing != null)
-                {
-                    _context.AnswerSelections.Remove(existing);
-                }
-            }
-            else
-            {
-                // Add new selection (support multi-choice - don't remove other answers for same question)
-                var answerSelection = new AnswerSelection
-                {
-                    Id = Guid.NewGuid(),
-                    ParticipationId = participationId,
-                    AnswerId = answerId
-                };
-                _context.AnswerSelections.Add(answerSelection);
-            }
+            _context.AnswerSelections.Add(newSelection);
 
             await _context.SaveChangesAsync();
         }
+
 
         public async Task<SubmitQuizResponseDTO> SubmitQuizAsync(Guid participationId, SubmitQuizDTO dto)
         {
@@ -459,7 +466,7 @@ namespace se347_be.Work.Services.Implementations
             }
 
             // Update participation
-            participation.SubmitTime = DateTime.Now;
+            participation.SubmitTime = DateTime.UtcNow;
             participation.Score = Math.Round(score, 2);
             
             // Clear shuffle JSON to save storage (no longer needed after submit)
@@ -548,7 +555,7 @@ namespace se347_be.Work.Services.Implementations
 
             // Determine if correct answers should be shown based on ShowCorrectAnswersMode
             bool showCorrectAnswers = false;
-            var now = DateTime.Now;
+            var UtcNow = DateTime.UtcNow;
 
             switch (quiz.ShowCorrectAnswersMode)
             {
@@ -556,7 +563,7 @@ namespace se347_be.Work.Services.Implementations
                     showCorrectAnswers = true;
                     break;
                 case "AfterDueTime":
-                    if (quiz.DueTime.HasValue && now > quiz.DueTime.Value)
+                    if (quiz.DueTime.HasValue && UtcNow > quiz.DueTime.Value)
                     {
                         showCorrectAnswers = true;
                     }

@@ -88,7 +88,8 @@ namespace se347_be.Work.Services.Implementations
                 StudentId = p.StudentId,
                 ClassName = p.ClassName,
                 Score = (double)(p.Score ?? 0),
-                SubmitTime = p.SubmitTime
+                Email = p.Email,
+                SubmitTime = p.SubmitTime == null ? null : DateTime.SpecifyKind(p.SubmitTime ?? DateTime.UtcNow, DateTimeKind.Utc)
             })
             .OrderByDescending(p => p.Score)
             .ToList();
@@ -156,7 +157,7 @@ namespace se347_be.Work.Services.Implementations
                 Score = score,
                 TotalQuestions = totalQuestions,
                 CorrectAnswers = correctCount,
-                SubmitTime = participation.SubmitTime,
+                SubmitTime = participation.SubmitTime == null ? null : DateTime.SpecifyKind(participation.SubmitTime ?? DateTime.UtcNow, DateTimeKind.Utc),
                 Details = details
             };
         }

@@ -4,6 +4,7 @@ namespace se347_be.Work.DTOs.Participant
     {
         public List<QuestionContentDTO> Questions { get; set; } = new();
         public Guid ParticipationId { get; set; }
+        public double LeftTimeInSecond { get; set; } = 0;
         public int? DurationInMinutes { get; set; }
     }
 

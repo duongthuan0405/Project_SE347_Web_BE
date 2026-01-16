@@ -30,7 +30,7 @@ namespace se347_be.Work.Database.Entities
 
         [Required, Column(TypeName = "timestamp")]
         [DefaultValue("getdate()")]
-        public DateTime ParticipationTime { get; set; } = DateTime.Now;
+        public DateTime ParticipationTime { get; set; } = DateTime.UtcNow;
 
         [Column(TypeName = "timestamp")]
         public DateTime? SubmitTime { get; set; }
