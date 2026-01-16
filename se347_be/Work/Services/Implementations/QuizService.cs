@@ -77,7 +77,7 @@ namespace se347_be.Work.Services.Implementations
                 StartTime = createQuizDTO.StartTime,
                 DueTime = createQuizDTO.DueTime,
                 MaxTimesCanAttempt = createQuizDTO.MaxTimesCanAttempt,
-                IsPublish = createQuizDTO.IsPublish,
+                IsPublish = true,
                 IsShuffleAnswers = createQuizDTO.IsShuffleAnswers,
                 IsShuffleQuestions = createQuizDTO.IsShuffleQuestions,
                 DurationInMinutes = createQuizDTO.DurationInMinutes,

@@ -29,12 +29,12 @@ namespace se347_be.Work.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<QuestionBankDetailDTO>> CreateQuestion([FromBody] CreateQuestionBankDTO dto)
+        public async Task<ActionResult<List<QuestionBankDetailDTO>>> CreateQuestions([FromBody] List<CreateQuestionBankDTO> dtos)
         {
             try
             {
                 var userId = GetCurrentUserId();
-                var result = await _questionBankService.CreateQuestionAsync(dto, userId);
+                var result = await _questionBankService.CreateQuestionsAsync(dtos, userId);
                 return Ok(result);
             }
             catch (InvalidDataException ex)

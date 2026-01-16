@@ -11,5 +11,6 @@ namespace se347_be.Work.Repositories.Interfaces
         Task DeleteAsync(Guid questionId);
         Task<int> CountQuizzesUsingQuestionAsync(Guid questionId);
         Task<bool> IsOwnerAsync(Guid questionId, Guid creatorId);
+        Task CreateManyAsync(List<Question> newQuestion);
     }
 }

@@ -17,52 +17,62 @@ namespace se347_be.Work.Services.Implementations
             _context = context;
         }
 
-        public async Task<QuestionBankDetailDTO> CreateQuestionAsync(CreateQuestionBankDTO dto, Guid creatorId)
+        public async Task<List<QuestionBankDetailDTO>> CreateQuestionsAsync(List<CreateQuestionBankDTO> dtos, Guid creatorId)
         {
-            // Validate at least one correct answer
-            if (!dto.Answers.Any(a => a.IsCorrectAnswer))
-            {
-                throw new InvalidDataException("Question must have at least one correct answer");
+            List<QuestionBankDetailDTO> result = new List<QuestionBankDetailDTO>();
+            List<Question> newQuestion = new List<Question>();
+
+            foreach(CreateQuestionBankDTO dto in dtos) {
+                // Validate at least one correct answer
+                if (!dto.Answers.Any(a => a.IsCorrectAnswer))
+                {
+                    throw new InvalidDataException("Question must have at least one correct answer");
+                }
+
+                var question = new Question
+                {
+                    Id = Guid.NewGuid(),
+                    Content = dto.Content,
+                    Points = dto.Points,
+                    Category = dto.Category,
+                    CreatorId = creatorId,
+                    IsDraft = false
+                };
+
+                // Create answers
+                var answers = dto.Answers.Select(a => new Answer
+                {
+                    Id = Guid.NewGuid(),
+                    Content = a.Content,
+                    IsCorrectAnswer = a.IsCorrectAnswer,
+                    QuestionId = question.Id
+                }).ToList();
+
+                question.Answers = answers;
+                newQuestion.Add(question);
+
+                result.Add(new QuestionBankDetailDTO
+                {
+                    Id = question.Id,
+                    Content = question.Content,
+                    Points = question.Points,
+                    Category = question.Category,
+                    IsDraft = question.IsDraft,
+                    Answers = answers.Select(a => new AnswerDetailDTO
+                    {
+                        Id = a.Id,
+                        Content = a.Content,
+                        IsCorrectAnswer = a.IsCorrectAnswer
+                    }).ToList(),
+                    UsedInQuizCount = 0
+                });
+
+                
             }
 
-            var question = new Question
-            {
-                Id = Guid.NewGuid(),
-                Content = dto.Content,
-                Points = dto.Points,
-                Category = dto.Category,
-                CreatorId = creatorId,
-                IsDraft = false
-            };
+            await _questionRepo.CreateManyAsync(newQuestion);
 
-            // Create answers
-            var answers = dto.Answers.Select(a => new Answer
-            {
-                Id = Guid.NewGuid(),
-                Content = a.Content,
-                IsCorrectAnswer = a.IsCorrectAnswer,
-                QuestionId = question.Id
-            }).ToList();
-
-            question.Answers = answers;
-
-            await _questionRepo.CreateAsync(question);
-
-            return new QuestionBankDetailDTO
-            {
-                Id = question.Id,
-                Content = question.Content,
-                Points = question.Points,
-                Category = question.Category,
-                IsDraft = question.IsDraft,
-                Answers = answers.Select(a => new AnswerDetailDTO
-                {
-                    Id = a.Id,
-                    Content = a.Content,
-                    IsCorrectAnswer = a.IsCorrectAnswer
-                }).ToList(),
-                UsedInQuizCount = 0
-            };
+            return result;
         }
 
         public async Task<List<QuestionBankResponseDTO>> GetQuestionsAsync(Guid creatorId, string? category = null, string? searchTerm = null)

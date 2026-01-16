@@ -30,12 +30,12 @@ namespace se347_be.Work.Repositories.Implementations
                 .Where(q => q.CreatorId == creatorId && q.Category != null);
 
             if (!string.IsNullOrEmpty(category))
-                query = query.Where(q => q.Category == category);
+                query = query.Where(q => (q.Category != null && q.Category.Contains(category)));
 
             if (!string.IsNullOrEmpty(searchTerm))
                 query = query.Where(q => q.Content.Contains(searchTerm));
 
-            return await query.OrderByDescending(q => q.Id).ToListAsync();
+            return await query.OrderByDescending(q => q.Category).ToListAsync();
         }
 
         public async Task<Question?> GetByIdAsync(Guid questionId)
@@ -73,6 +73,12 @@ namespace se347_be.Work.Repositories.Implementations
         {
             return await _context.Questions
                 .AnyAsync(q => q.Id == questionId && q.CreatorId == creatorId);
+        }
+
+        public async Task CreateManyAsync(List<Question> newQuestion)
+        {
+            await _context.Questions.AddRangeAsync(newQuestion);
+            await _context.SaveChangesAsync();
         }
     }
 }
