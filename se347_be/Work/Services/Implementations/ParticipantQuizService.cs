@@ -67,7 +67,7 @@ namespace se347_be.Work.Services.Implementations
             };
         }
 
-        public async Task<StartQuizResponseDTO> StartQuizAsync(Guid quizId, StartQuizRequestDTO dto)
+        public async Task<StartQuizResponseDTO> StartQuizAsync(Guid quizId, StartQuizRequestDTO dto, Guid? userId)
         {
             var quiz = await _context.Quizzes
                 .Include(q => q.QuizQuestions)
@@ -195,7 +195,8 @@ namespace se347_be.Work.Services.Implementations
                 ParticipationTime = DateTime.Now,
                 SubmitTime = null,
                 ShuffledQuestionsJson = shuffledQuestionsJson,
-                ShuffledAnswersJson = shuffledAnswersJson
+                ShuffledAnswersJson = shuffledAnswersJson,
+                UserId = userId
             };
 
             _context.QuizParticipations.Add(participation);

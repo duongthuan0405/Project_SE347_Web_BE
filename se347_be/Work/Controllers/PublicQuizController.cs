@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using se347_be.Work.DTOs.Participant;
 using se347_be.Work.Services.Interfaces;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace se347_be.Work.Controllers
 {
@@ -13,6 +15,19 @@ namespace se347_be.Work.Controllers
         public PublicQuizController(IParticipantQuizService participantQuizService)
         {
             _participantQuizService = participantQuizService;
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                throw new UnauthorizedAccessException("Invalid user token");
+            }
+
+            return userId;
         }
 
         [HttpGet("{quizId}/info")]
@@ -40,7 +55,17 @@ namespace se347_be.Work.Controllers
         {
             try
             {
-                var result = await _participantQuizService.StartQuizAsync(quizId, dto);
+                Guid? userIdClaim = null;
+                try
+                {
+                    userIdClaim = GetCurrentUserId();
+                }
+                catch
+                {
+                    userIdClaim = null;
+                }
+
+                var result = await _participantQuizService.StartQuizAsync(quizId, dto, userIdClaim);
                 return Ok(result);
             }
             catch (InvalidDataException ex)

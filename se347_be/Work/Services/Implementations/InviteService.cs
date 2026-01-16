@@ -66,8 +66,8 @@ namespace se347_be.Work.Services.Implementations
             }
 
             // Generate quiz link
-            var baseUrl = _configuration["AppSettings:BaseUrl"] ?? "http://localhost:5000";
-            var quizLink = $"{baseUrl}/quiz/{quizId}";
+            var baseUrl = _configuration["FE:BaseURL"] ?? "http://localhost:5174";
+            var quizLink = $"{baseUrl}/take/{quizId}";
 
             // Send emails and save to whitelist (for Private access type)
             var response = new InviteResponseDTO();

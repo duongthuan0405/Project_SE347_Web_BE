@@ -16,6 +16,9 @@ namespace se347_be.Work.Database.Entities
         [ForeignKey("Quiz")]
         public Guid? QuizId { get; set; }
 
+        [ForeignKey("User")]
+        public Guid? UserId { get; set; }
+
         [Column(TypeName = "varchar(100)")]
         public string? StudentId { get; set; }
 
@@ -46,6 +49,7 @@ namespace se347_be.Work.Database.Entities
 
         // Navigation
         public Quiz? Quiz { get; set; }
+        public AppUser? User { get; set; }
         public ICollection<AnswerSelection>? AnswerSelections { get; set; }
     }
 }
