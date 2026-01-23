@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using se347_be.Work.Database.Entity;
@@ -12,6 +9,12 @@ using se347_be.Work.DTOs.UserProfile;
 using se347_be.Work.JWT;
 using se347_be.Work.Repositories.Interfaces;
 using se347_be.Work.Services.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace se347_be.Work.Controllers.Authentication
 {
@@ -120,6 +123,40 @@ namespace se347_be.Work.Controllers.Authentication
                 return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "Verification process is unsuccessful!" });
             }
 
+        }
+
+        [HttpPut]
+        [Authorize]
+        public async Task<ActionResult> ChangePassword([FromBody] ChangePassword dto)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+
+                await _authService.ChangePasswordAsync(userId, dto);
+                return Ok(new { Message = "Đổi mật khẩu thành công" });
+            }
+            catch(UnauthorizedAccessException)
+            {
+                return NotFound(new { Message = "User not found" });
+            }
+            catch (InvalidDataException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                throw new UnauthorizedAccessException("Invalid user token");
+            }
+
+            return userId;
         }
 
     }

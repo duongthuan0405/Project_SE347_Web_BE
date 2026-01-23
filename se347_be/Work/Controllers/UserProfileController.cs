@@ -46,7 +46,16 @@ namespace se347_be.Work.Controllers
 
             try
             {
-                var result = await _userProfileService.UpdateProfileAsync(userId, updateDto, updateDto.ImageFile);
+                if(updateDto.ImageFile == null)
+                {
+                    Console.WriteLine("NULL");
+                    
+                }
+                else
+                {
+                    Console.WriteLine("NN");
+                }
+                    var result = await _userProfileService.UpdateProfileAsync(userId, updateDto, updateDto.ImageFile);
                 if (result == null) 
                 { 
                     return StatusCode(StatusCodes.Status404NotFound, new { Message = "User not found!" });

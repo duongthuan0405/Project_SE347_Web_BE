@@ -44,42 +44,51 @@ namespace se347_be.Work.Services.Implementations
             return userProfileDTO;
         }
 
-        public async Task<UserProfileResponseDTO?> UpdateProfileAsync(string id, UpdateUserProfileRequestDTO updateRequest, IFormFile? avatar)
+        public async Task<UserProfileResponseDTO?> UpdateProfileAsync(
+             string id,
+             UpdateUserProfileRequestDTO updateRequest,
+             IFormFile? avatar)
         {
-            try
+            Guid userId = Guid.Parse(id);
+
+            var currentUser = await _userProfileRepo.GetProfileByIdAsync(userId);
+            if (currentUser == null)
             {
-                string avatarURL = "";
-                var currentUser = await _userProfileRepo.GetProfileByIdAsync(Guid.Parse(id));
-                if (currentUser == null)
-                {
-                    return null;
-                }
-
-                if (avatar != null)
-                {
-                    avatarURL = await _imageStorage.SaveAsync(avatar, "avatars");
-                    _imageStorage.Delete(currentUser.Avatar ?? "");
-                }
-
-                AppUserProfile appUserProfile = new AppUserProfile()
-                {
-                    Id = Guid.Parse(id),
-                    FirstName = updateRequest.FirstName ?? "",
-                    LastName = updateRequest.LastName ?? "",
-                    Avatar = avatarURL ?? ""
-                };
-
-                var result = await _userProfileRepo.UpdateUserProfileAsync(appUserProfile);
-                return new UserProfileResponseDTO()
-                {
-                    Id = result?.Id.ToString() ?? "",
-                    FirstName = result?.FirstName,
-                    LastName = result?.LastName,
-                    Avatar = _urlFileHelper.GetLiveURL(result?.Avatar ?? "")
-                };
-            } catch (Exception) {
-                throw;
+                return null;
             }
+
+            string? oldAvatar = currentUser.Avatar;
+            string? newAvatarPath = null;
+
+        
+            if (avatar != null)
+            {
+                newAvatarPath = await _imageStorage.SaveAsync(avatar, "avatars");
+                currentUser.Avatar = newAvatarPath;
+            }
+
+         
+            if (updateRequest.FirstName != null)
+                currentUser.FirstName = updateRequest.FirstName;
+
+            if (updateRequest.LastName != null)
+                currentUser.LastName = updateRequest.LastName;
+
+            var updatedUser = await _userProfileRepo.UpdateUserProfileAsync(currentUser);
+
+            if (avatar != null && !string.IsNullOrEmpty(oldAvatar))
+            {
+                _imageStorage.Delete(oldAvatar);
+            }
+
+            return new UserProfileResponseDTO
+            {
+                Id = updatedUser.Id.ToString(),
+                FirstName = updatedUser.FirstName,
+                LastName = updatedUser.LastName,
+                Avatar = _urlFileHelper.GetLiveURL(updatedUser.Avatar ?? "")
+            };
         }
+
     }
 }

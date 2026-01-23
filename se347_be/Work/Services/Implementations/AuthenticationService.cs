@@ -28,6 +28,12 @@ namespace se347_be.Work.Services.Implementations
             _pendingUserRepo = pendingUserRepo;
         }
 
+        public async Task ChangePasswordAsync(Guid userId, ChangePassword dto)
+        {
+           
+            await _userRepo.ChangePassword(userId, dto);
+        }
+
         public async Task ResendOTPAsync(ResendOTPRequestDTO resendOTPDTO)
         {
             await _email.SendOTPAsync(resendOTPDTO.EmailTo, true);

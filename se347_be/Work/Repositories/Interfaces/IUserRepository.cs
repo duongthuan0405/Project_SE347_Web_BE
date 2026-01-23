@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using se347_be.Database;
 using se347_be.Work.Database.Entity;
+using se347_be.Work.DTOs.Authen;
 
 namespace se347_be.Work.Repositories.Interfaces
 {
@@ -14,5 +15,6 @@ namespace se347_be.Work.Repositories.Interfaces
         public Task<AppUser?> GetUserWithGmailAndPasswordAsync(string email, string password);
         public Task<AppUser?> GetUserByIdAsync(Guid id);
         public Task<AppUser?> FindUserByEmail(string email);
+        Task ChangePassword(Guid userId, ChangePassword dto);
     }
 }

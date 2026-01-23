@@ -15,5 +15,6 @@ namespace se347_be.Work.Services.Interfaces
         public Task<UserResponseDTO?> SignInAsync(SignInRequestDTO signInRequestDTO);
         public Task<string> VerifyAccountAsync(string email, string otp);
         Task ResendOTPAsync(ResendOTPRequestDTO resendOTPDTO);
+        Task ChangePasswordAsync(Guid userId, ChangePassword dto);
     }
 }

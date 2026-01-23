@@ -2,6 +2,7 @@
 using Npgsql;
 using se347_be.Database;
 using se347_be.Work.Database.Entity;
+using se347_be.Work.DTOs.Authen;
 using se347_be.Work.PasswordHelper;
 using se347_be.Work.Repositories.Interfaces;
 using System;
@@ -39,6 +40,35 @@ namespace se347_be.Work.Repositories.Implementations
 
                 throw;
             }
+        }
+
+        public async Task ChangePassword(Guid userId, ChangePassword dto)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+           
+            if (user == null)
+            {
+                throw new UnauthorizedAccessException("User not found");
+            }
+
+            if(!PasswordHashHelper.VerifyPassword(dto.OldPassword ?? "", user.PasswordHash))
+            {
+                throw new Exception("Old password is incorrect");
+            }
+
+            if(dto.NewPassword == null || dto.NewPassword.Length < 6)
+            {
+                throw new InvalidDataException("Please enter new password");
+            }
+
+            if(dto.NewPassword != dto.ConfirmPassword)
+            {
+                throw new Exception("New password is confirmed incorrectly");
+            }
+
+            user.PasswordHash = PasswordHashHelper.HashPassword(dto.NewPassword);
+            await _db.SaveChangesAsync();
+
         }
 
         public async Task<AppUser?> FindUserByEmail(string email)
