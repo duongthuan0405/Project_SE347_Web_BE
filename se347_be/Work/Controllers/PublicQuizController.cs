@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using se347_be.Work.DTOs.Participant;
 using se347_be.Work.Exceptions;
@@ -233,5 +234,7 @@ namespace se347_be.Work.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
             }
         }
+
+       
     }
 }
