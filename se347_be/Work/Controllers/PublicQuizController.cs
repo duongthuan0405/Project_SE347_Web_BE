@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using se347_be.Work.DTOs.Participant;
+using se347_be.Work.Exceptions;
 using se347_be.Work.Services.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -68,6 +69,48 @@ namespace se347_be.Work.Controllers
                 var result = await _participantQuizService.StartQuizAsync(quizId, dto, userIdClaim);
                 return Ok(result);
             }
+            catch (QuizTimeOverException ex)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, new { Message = ex.Message, ParticipationId = ex.ParticipationId });
+            }
+            catch (InvalidDataException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
+
+        [HttpPost("{quizId}/resume")]
+        public async Task<ActionResult<StartQuizResponseDTO>> ResumeQuiz(
+            [FromRoute] Guid quizId,
+            [FromBody] StartQuizRequestDTO dto)
+        {
+            try
+            {
+                Guid? userIdClaim = null;
+                try
+                {
+                    userIdClaim = GetCurrentUserId();
+                }
+                catch
+                {
+                    userIdClaim = null;
+                }
+
+                var result = await _participantQuizService.ResumeQuizAsync(quizId, dto, userIdClaim);
+                return Ok(result);
+            }
+            catch (QuizTimeOverException ex)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, new { Message = ex.Message, ParticipationId = ex.ParticipationId });
+            }
             catch (InvalidDataException ex)
             {
                 return BadRequest(new { Message = ex.Message });
@@ -90,6 +133,10 @@ namespace se347_be.Work.Controllers
                 var content = await _participantQuizService.GetQuizContentAsync(participationId);
                 return Ok(content);
             }
+            catch (QuizTimeOverException ex)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, new { Message = ex.Message, ParticipationId = ex.ParticipationId });
+            }
             catch (InvalidDataException ex)
             {
                 return NotFound(new { Message = ex.Message });
@@ -110,6 +157,10 @@ namespace se347_be.Work.Controllers
                 await _participantQuizService.SaveAnswerAsync(participationId, dto.QuestionId, dto.SelectedAnswerId);
                 return Ok(new { Message = "Answer saved successfully" });
             }
+            catch (QuizTimeOverException ex)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, new { Message = ex.Message, ParticipationId = ex.ParticipationId });
+            }
             catch (InvalidDataException ex)
             {
                 return BadRequest(new { Message = ex.Message });
@@ -129,6 +180,10 @@ namespace se347_be.Work.Controllers
             {
                 await _participantQuizService.SaveAnswersAsync(participationId, answers);
                 return Ok(new { Message = "Answers saved successfully" });
+            }
+            catch (QuizTimeOverException ex)
+            {
+                return StatusCode(StatusCodes.Status409Conflict, new { Message = ex.Message, ParticipationId = ex.ParticipationId });
             }
             catch (InvalidDataException ex)
             {

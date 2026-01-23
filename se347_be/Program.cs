@@ -16,6 +16,7 @@ using se347_be.Work.Storage;
 using se347_be.Work.Storage.Implementations;
 using se347_be.Work.Storage.Interfaces;
 using se347_be.Work.URLFileHelper;
+using se347_be.Work.BackgroundJobs;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 
@@ -128,6 +129,8 @@ public class Program
 
         // Participant Quiz Module
         builder.Services.AddScoped<IParticipantQuizService, ParticipantQuizService>();
+
+        builder.Services.AddHostedService<QuizAutoSubmitHostedService>();
         
         // Email Settings
         builder.Services.AddScoped<IEmailService, EmailService>();
@@ -173,7 +176,7 @@ public class Program
 
         builder.Services.AddSwaggerGen(c =>
         {
-            // Thêm Bearer token support
+            // ThÃªm Bearer token support
             c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
             {
                 Name = "Authorization",

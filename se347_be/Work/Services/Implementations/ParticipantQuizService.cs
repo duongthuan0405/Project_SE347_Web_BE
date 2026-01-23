@@ -3,6 +3,7 @@ using se347_be.Database;
 using se347_be.Work.Database.Entity;
 using se347_be.Work.Database.Entities;
 using se347_be.Work.DTOs.Participant;
+using se347_be.Work.Exceptions;
 using se347_be.Work.Services.Interfaces;
 using se347_be.Work.Email;
 
@@ -17,6 +18,41 @@ namespace se347_be.Work.Services.Implementations
         {
             _context = context;
             _emailService = emailService;
+        }
+
+        private static DateTime? GetEffectiveDeadlineUtc(DateTime participationTimeUtc, int? durationInMinutes, DateTime? dueTimeUtc)
+        {
+            DateTime? durationDeadlineUtc = durationInMinutes.HasValue
+                ? participationTimeUtc.AddMinutes(durationInMinutes.Value)
+                : (DateTime?)null;
+
+            if (durationDeadlineUtc.HasValue && dueTimeUtc.HasValue)
+            {
+                return durationDeadlineUtc.Value <= dueTimeUtc.Value ? durationDeadlineUtc.Value : dueTimeUtc.Value;
+            }
+
+            return durationDeadlineUtc ?? dueTimeUtc;
+        }
+
+        private async Task EnsureNotTimeOverOrAutoSubmitAsync(QuizParticipation participation, Quiz quiz)
+        {
+            var deadlineUtc = GetEffectiveDeadlineUtc(participation.ParticipationTime, quiz.DurationInMinutes, quiz.DueTime);
+            if (deadlineUtc.HasValue && DateTime.UtcNow >= deadlineUtc.Value)
+            {
+                try
+                {
+                    await SubmitQuizAsync(participation.Id, new SubmitQuizDTO());
+                }
+                catch (InvalidDataException ex)
+                {
+                    if (!string.Equals(ex.Message, "Quiz has already been submitted", StringComparison.Ordinal))
+                    {
+                        throw;
+                    }
+                }
+
+                throw new QuizTimeOverException(participation.Id);
+            }
         }
 
         public async Task<QuizInfoDTO> GetQuizInfoAsync(Guid quizId)
@@ -223,6 +259,78 @@ namespace se347_be.Work.Services.Implementations
             };
         }
 
+        public async Task<StartQuizResponseDTO> ResumeQuizAsync(Guid quizId, StartQuizRequestDTO dto, Guid? userId)
+        {
+            var quiz = await _context.Quizzes
+                .Include(q => q.QuizQuestions)
+                .FirstOrDefaultAsync(q => q.Id == quizId);
+
+            if (quiz == null)
+            {
+                throw new InvalidDataException("Quiz not found");
+            }
+
+            if (!quiz.IsPublish)
+            {
+                throw new InvalidDataException("This quiz is not published yet");
+            }
+
+            if (!string.IsNullOrEmpty(quiz.AccessCode))
+            {
+                if (string.IsNullOrEmpty(dto.AccessCode) || dto.AccessCode != quiz.AccessCode)
+                {
+                    throw new UnauthorizedAccessException("Invalid access code");
+                }
+            }
+
+            var UtcNow = DateTime.UtcNow;
+            if (quiz.StartTime.HasValue && UtcNow < quiz.StartTime.Value)
+            {
+                throw new InvalidDataException("Quiz has not started yet");
+            }
+
+            IQueryable<QuizParticipation> query = _context.QuizParticipations
+                .Where(p => p.QuizId == quizId && p.SubmitTime == null);
+
+            if (!string.IsNullOrEmpty(dto.StudentId))
+            {
+                query = query.Where(p => p.StudentId == dto.StudentId);
+            }
+            else
+            {
+                query = query.Where(p => p.Email == dto.Email);
+            }
+
+            var participation = await query
+                .OrderByDescending(p => p.ParticipationTime)
+                .FirstOrDefaultAsync();
+
+            if (participation == null)
+            {
+                throw new InvalidDataException("No active participation to resume");
+            }
+
+            await EnsureNotTimeOverOrAutoSubmitAsync(participation, quiz);
+
+            var estimatedEndTime = quiz.DurationInMinutes.HasValue
+                ? participation.ParticipationTime.AddMinutes(quiz.DurationInMinutes.Value)
+                : (DateTime?)null;
+
+            return new StartQuizResponseDTO
+            {
+                ParticipationId = participation.Id,
+                QuizId = quiz.Id,
+                QuizTitle = quiz.Title,
+                Description = quiz.Description,
+                DurationInMinutes = quiz.DurationInMinutes,
+                StartTime = participation.ParticipationTime,
+                EstimatedEndTime = estimatedEndTime,
+                TotalQuestions = quiz.QuizQuestions?.Count ?? 0,
+                IsShuffleQuestions = quiz.IsShuffleQuestions,
+                IsShuffleAnswers = quiz.IsShuffleAnswers
+            };
+        }
+
         public async Task<QuizContentDTO> GetQuizContentAsync(Guid participationId)
         {
             var participation = await _context.QuizParticipations
@@ -243,6 +351,8 @@ namespace se347_be.Work.Services.Implementations
             }
 
             var quiz = participation.Quiz!;
+
+            await EnsureNotTimeOverOrAutoSubmitAsync(participation, quiz);
 
             // Get questions from QuizQuestion with proper order
             var quizQuestions = quiz.QuizQuestions?.
@@ -323,7 +433,6 @@ namespace se347_be.Work.Services.Implementations
         public async Task SaveAnswerAsync(Guid participationId, Guid questionId, Guid answerId)
         {
             var participation = await _context.QuizParticipations
-                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == participationId);
 
             if (participation == null)
@@ -332,6 +441,14 @@ namespace se347_be.Work.Services.Implementations
             
             if (participation.SubmitTime.HasValue)
                 throw new InvalidDataException("Quiz has already been submitted");
+
+            var quiz = await _context.Quizzes.FirstOrDefaultAsync(q => q.Id == participation.QuizId);
+            if (quiz == null)
+            {
+                throw new InvalidDataException("Quiz not found");
+            }
+
+            await EnsureNotTimeOverOrAutoSubmitAsync(participation, quiz);
 
             
             var answerIdsOfQuestion = await _context.Answers
@@ -524,6 +641,14 @@ namespace se347_be.Work.Services.Implementations
             {
                 throw new InvalidDataException("Quiz has already been submitted");
             }
+
+            var quiz = await _context.Quizzes.FirstOrDefaultAsync(q => q.Id == participation.QuizId);
+            if (quiz == null)
+            {
+                throw new InvalidDataException("Quiz not found");
+            }
+
+            await EnsureNotTimeOverOrAutoSubmitAsync(participation, quiz);
 
             // Save each answer
             foreach (var answer in answers)
